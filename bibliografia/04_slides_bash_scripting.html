@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docker - Introducci&oacute;n</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+  <style>
+    :root {
+      --docker-blue: #2496ED;
+      --docker-dark: #1D63ED;
+      --docker-light: #E8F4FD;
+      --accent-green: #4CAF50;
+      --accent-orange: #FF9800;
+      --accent-red: #f44336;
+      --text-light: #e0e0e0;
+    }
+
+    .reveal {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .reveal h1, .reveal h2, .reveal h3 {
+      text-transform: none;
+      font-weight: 700;
+    }
+
+    .reveal h1 {
+      font-size: 2.2em;
+    }
+
+    .reveal h2 {
+      font-size: 1.6em;
+      color: var(--docker-blue);
+    }
+
+    .reveal h3 {
+      font-size: 1.2em;
+      color: var(--docker-blue);
+    }
+
+    .reveal .section-title h2 {
+      font-size: 2em;
+      color: #fff;
+    }
+
+    .reveal .section-title p {
+      font-size: 1.1em;
+      color: var(--text-light);
+    }
+
+    .reveal ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .reveal ul li {
+      margin-bottom: 0.5em;
+      padding-left: 1.2em;
+      position: relative;
+    }
+
+    .reveal ul li::before {
+      content: ">";
+      color: var(--docker-blue);
+      font-weight: bold;
+      position: absolute;
+      left: 0;
+    }
+
+    .reveal pre {
+      width: 100%;
+      font-size: 0.55em;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      border-radius: 8px;
+    }
+
+    .reveal code {
+      font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    .reveal .inline-code {
+      background: rgba(36, 150, 237, 0.15);
+      color: var(--docker-blue);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.9em;
+    }
+
+    /* Diagram styles */
+    .diagram-container {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 30px;
+    }
+
+    .diagram-box {
+      border: 2px solid var(--docker-blue);
+      border-radius: 12px;
+      padding: 20px;
+      min-width: 320px;
+      background: rgba(36, 150, 237, 0.05);
+    }
+
+    .diagram-box h3 {
+      margin-top: 0;
+      text-align: center;
+      border-bottom: 2px solid var(--docker-blue);
+      padding-bottom: 10px;
+    }
+
+    .layer {
+      background: rgba(36, 150, 237, 0.12);
+      border: 1px solid rgba(36, 150, 237, 0.3);
+      border-radius: 6px;
+      padding: 8px 14px;
+      margin: 6px 0;
+      text-align: center;
+      font-size: 0.7em;
+      transition: all 0.3s;
+    }
+
+    .layer.os { background: rgba(244, 67, 54, 0.15); border-color: rgba(244, 67, 54, 0.4); }
+    .layer.kernel { background: rgba(255, 152, 0, 0.15); border-color: rgba(255, 152, 0, 0.4); }
+    .layer.runtime { background: rgba(76, 175, 80, 0.15); border-color: rgba(76, 175, 80, 0.4); }
+    .layer.app { background: rgba(36, 150, 237, 0.15); border-color: rgba(36, 150, 237, 0.4); }
+
+    .app-row {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    .app-row .layer {
+      flex: 1;
+    }
+
+    /* Comparison table */
+    .reveal table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      font-size: 0.75em;
+    }
+
+    .reveal table th {
+      background: var(--docker-blue);
+      color: #fff;
+      padding: 12px 20px;
+      text-align: left;
+    }
+
+    .reveal table td {
+      padding: 10px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .reveal table tr:nth-child(even) {
+      background: rgba(255,255,255,0.03);
+    }
+
+    /* Port diagram */
+    .port-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      margin: 30px 0;
+    }
+
+    .server-box {
+      border: 2px solid var(--docker-blue);
+      border-radius: 12px;
+      padding: 20px 30px;
+      text-align: center;
+      position: relative;
+    }
+
+    .port-label {
+      background: var(--docker-blue);
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.7em;
+      display: inline-block;
+      margin: 4px;
+    }
+
+    .arrow {
+      font-size: 2em;
+      color: var(--docker-blue);
+    }
+
+    /* Lifecycle */
+    .lifecycle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 30px 0;
+      flex-wrap: wrap;
+    }
+
+    .lifecycle-step {
+      background: rgba(36, 150, 237, 0.12);
+      border: 2px solid var(--docker-blue);
+      border-radius: 30px;
+      padding: 12px 24px;
+      font-size: 0.5em;
+      font-weight: 600;
+    }
+
+    .lifecycle-step.active {
+      background: var(--docker-blue);
+      color: #fff;
+    }
+
+    .lifecycle-arrow {
+      color: var(--docker-blue);
+      font-size: 1.5em;
+    }
+
+    /* Image layers */
+    .image-layers {
+      max-width: 500px;
+      margin: 20px auto;
+    }
+
+    .image-layer {
+      padding: 14px 20px;
+      margin: 4px 0;
+      border-radius: 6px;
+      font-size: 0.7em;
+      font-family: 'Fira Code', monospace;
+      text-align: left;
+      border-left: 4px solid;
+    }
+
+    .image-layer:nth-child(1) { background: rgba(36, 150, 237, 0.2); border-color: var(--docker-blue); }
+    .image-layer:nth-child(2) { background: rgba(76, 175, 80, 0.2); border-color: var(--accent-green); }
+    .image-layer:nth-child(3) { background: rgba(255, 152, 0, 0.2); border-color: var(--accent-orange); }
+    .image-layer:nth-child(4) { background: rgba(244, 67, 54, 0.2); border-color: var(--accent-red); }
+    .image-layer:nth-child(5) { background: rgba(156, 39, 176, 0.2); border-color: #9C27B0; }
+
+    /* Network diagram */
+    .network-diagram {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .network-bridge {
+      background: rgba(36, 150, 237, 0.15);
+      border: 2px dashed var(--docker-blue);
+      border-radius: 12px;
+      padding: 20px;
+      width: 80%;
+    }
+
+    .containers-row {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 15px;
+    }
+
+    .mini-container {
+      background: rgba(76, 175, 80, 0.15);
+      border: 2px solid var(--accent-green);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 0.65em;
+      text-align: center;
+    }
+
+    /* Volume diagram */
+    .volume-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+      margin: 30px 0;
+    }
+
+    .volume-box {
+      border: 2px solid var(--accent-orange);
+      border-radius: 12px;
+      padding: 15px 25px;
+      text-align: center;
+      background: rgba(255, 152, 0, 0.08);
+    }
+
+    .container-box {
+      border: 2px solid var(--accent-green);
+      border-radius: 12px;
+      padding: 15px 25px;
+      text-align: center;
+      background: rgba(76, 175, 80, 0.08);
+    }
+
+    /* Emoji styling */
+    .emoji {
+      font-size: 1.2em;
+    }
+
+    /* Highlight */
+    .highlight {
+      color: var(--docker-blue);
+      font-weight: 700;
+    }
+
+    .highlight-green {
+      color: var(--accent-green);
+      font-weight: 700;
+    }
+
+    .highlight-orange {
+      color: var(--accent-orange);
+      font-weight: 700;
+    }
+
+    .highlight-red {
+      color: var(--accent-red);
+      font-weight: 700;
+    }
+
+    /* Section divider */
+    .section-divider {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+
+    .section-number {
+      font-size: 4em;
+      font-weight: 800;
+      color: var(--docker-blue);
+      opacity: 0.3;
+      position: absolute;
+      top: 15%;
+      right: 10%;
+    }
+
+    /* Title slide */
+    .title-slide {
+      text-align: center;
+    }
+
+    .docker-logo-ascii {
+      font-family: monospace;
+      font-size: 0.35em;
+      line-height: 1.2;
+      color: var(--docker-blue);
+      white-space: pre;
+      text-align: center;
+      margin: 20px auto;
+    }
+
+    /* Util */
+    .small {
+      font-size: 0.7em;
+      color: var(--text-light);
+    }
+
+    .two-columns {
+      display: flex;
+      gap: 40px;
+      align-items: flex-start;
+    }
+
+    .two-columns > div {
+      flex: 1;
+    }
+
+    .r-fit-text {
+      white-space: nowrap;
+    }
+
+    /* Resource bars */
+    .resource-bar-container {
+      max-width: 500px;
+      margin: 8px auto;
+      text-align: left;
+    }
+
+    .resource-bar-label {
+      font-size: 0.65em;
+      margin-bottom: 4px;
+    }
+
+    .resource-bar {
+      height: 30px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .resource-bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding-left: 10px;
+      font-size: 0.6em;
+      font-weight: 600;
+      transition: width 1s ease;
+    }
+
+    .fill-low { background: linear-gradient(90deg, var(--accent-red), var(--accent-orange)); width: 12%; }
+    .fill-high { background: linear-gradient(90deg, var(--accent-green), #81C784); width: 78%; }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================================== -->
+      <!-- PORTADA                                        -->
+      <!-- ============================================== -->
+      <section class="title-slide" data-auto-animate>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 2em;">
+            <svg data-id="logo-text" fill="#2496ED" viewBox="0 0 14 14" height="220" role="img" focusable="false" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="m 7.5609953,6.62971 -1.2392906,0 0,-1.11367 1.2392906,0 0,1.11367 z m 0,-3.83036 -1.2392906,0 0,1.13804 1.2392906,0 0,-1.13804 z m 1.4661501,2.71481 -1.2392906,0 0,1.11368 1.2392906,0 0,-1.11368 z M 6.09672,4.16238 l -1.2392906,0 0,1.1268 1.2392906,0 0,-1.1268 z m 1.4642753,0 -1.2392906,0 0,1.1268 1.2392906,0 0,-1.1268 z M 12.750642,6.03725 C 12.48066,5.85539 11.858203,5.78977 11.38011,5.87976 11.31824,5.42979 11.067007,5.03794 10.609538,4.68547 L 10.347055,4.51111 10.172692,4.77359 C 9.8277159,5.2948 9.7339723,6.15349 10.103322,6.71971 9.9402085,6.80781 9.6196054,6.92782 9.1958842,6.92032 l -8.1500699,0 c -0.16311389,0.95243 0.1087426,2.18985 0.8249438,3.03916 0.6955774,0.82307 1.7380064,1.24117 3.1010385,1.24117 2.951049,0 5.1352754,-1.35928 6.1570804,-3.82849 0.401223,0.008 1.267414,0.002 1.711759,-0.84744 C 12.868756,6.47782 12.964377,6.27724 13,6.20412 L 12.750642,6.03725 Z m -9.5824725,-0.52309 -1.2374158,0 0,1.11368 1.2392906,0 0,-1.11368 z m 1.4642752,0 -1.2392905,0 0,1.11368 1.2392905,0 0,-1.11368 z m 1.4642753,0 -1.2392906,0 0,1.11368 1.2392906,0 0,-1.11368 z m -1.4642753,-1.35178 -1.2392905,0 0,1.1268 1.2392905,0 0,-1.1268 z"></path></g></svg>
+        </div>
+        <h1 data-id="title" style="color: var(--docker-blue);">Docker</h1>
+        <p data-id="subtitle" style="font-size: 1.2em; color: var(--text-light);">Conceptos básicos</p>
+        <p data-id="course" class="small" style="margin-top: 40px;">Introducción al Desarrollo de Software &mdash; 2026</p>
+      </section>
+
+      <section class="title-slide" data-auto-animate>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 2em;">
+            <svg data-id="logo-text" fill="#2496ED" viewBox="0 0 14 14" height="220" role="img" focusable="false" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="m 7.5609953,6.62971 -1.2392906,0 0,-1.11367 1.2392906,0 0,1.11367 z m 0,-3.83036 -1.2392906,0 0,1.13804 1.2392906,0 0,-1.13804 z m 1.4661501,2.71481 -1.2392906,0 0,1.11368 1.2392906,0 0,-1.11368 z M 6.09672,4.16238 l -1.2392906,0 0,1.1268 1.2392906,0 0,-1.1268 z m 1.4642753,0 -1.2392906,0 0,1.1268 1.2392906,0 0,-1.1268 z M 12.750642,6.03725 C 12.48066,5.85539 11.858203,5.78977 11.38011,5.87976 11.31824,5.42979 11.067007,5.03794 10.609538,4.68547 L 10.347055,4.51111 10.172692,4.77359 C 9.8277159,5.2948 9.7339723,6.15349 10.103322,6.71971 9.9402085,6.80781 9.6196054,6.92782 9.1958842,6.92032 l -8.1500699,0 c -0.16311389,0.95243 0.1087426,2.18985 0.8249438,3.03916 0.6955774,0.82307 1.7380064,1.24117 3.1010385,1.24117 2.951049,0 5.1352754,-1.35928 6.1570804,-3.82849 0.401223,0.008 1.267414,0.002 1.711759,-0.84744 C 12.868756,6.47782 12.964377,6.27724 13,6.20412 L 12.750642,6.03725 Z m -9.5824725,-0.52309 -1.2374158,0 0,1.11368 1.2392906,0 0,-1.11368 z m 1.4642752,0 -1.2392905,0 0,1.11368 1.2392905,0 0,-1.11368 z m 1.4642753,0 -1.2392906,0 0,1.11368 1.2392906,0 0,-1.11368 z m -1.4642753,-1.35178 -1.2392905,0 0,1.1268 1.2392905,0 0,-1.1268 z"></path></g></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 756 596" style="width: 220px; display: block;">
+            <g fill="#2496ED">
+                <!-- Containers on whale -->
+                <rect x="175" y="105" width="65" height="58" rx="4"/>
+                <rect x="255" y="105" width="65" height="58" rx="4"/>
+                <rect x="335" y="105" width="65" height="58" rx="4"/>
+                <rect x="175" y="178" width="65" height="58" rx="4"/>
+                <rect x="255" y="178" width="65" height="58" rx="4"/>
+                <rect x="335" y="178" width="65" height="58" rx="4"/>
+                <rect x="415" y="178" width="65" height="58" rx="4"/>
+                <rect x="255" y="251" width="65" height="58" rx="4"/>
+                <rect x="335" y="251" width="65" height="58" rx="4"/>
+                <rect x="415" y="251" width="65" height="58" rx="4"/>
+                <rect x="495" y="251" width="65" height="58" rx="4"/>
+                <!-- Whale body -->
+                <path d="M 93 324 C 93 324 107 270 152 270 L 575 270 C 575 270 640 215 680 250 C 680 250 720 210 745 250 L 745 324 C 745 460 620 560 380 560 C 160 560 50 460 30 380 C 15 324 93 324 93 324 Z"/>
+                <!-- Whale eye -->
+                <circle cx="660" cy="310" r="12" fill="#0B1A2E"/>
+            </g>
+            </svg>
+        </div>
+        <h1 data-id="title" style="color: var(--docker-blue);">Docker</h1>
+        <p data-id="subtitle" style="font-size: 1.2em; color: var(--text-light);">Conceptos básicos</p>
+        <p data-id="course" class="small" style="margin-top: 40px;">Introducción al Desarrollo de Software &mdash; 2026</p>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 1. MOTIVACION                                  -->
+      <!-- ============================================== -->
+      <section>
+        <section class="section-divider" data-auto-animate>
+          <span class="section-number">01</span>
+          <h2 style="color: #fff;">&iquest;Por qu&eacute; Docker?</h2>
+          <p class="small">El problema antes de la soluci&oacute;n</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>El Problema Cl&aacute;sico</h2>
+          <div style="font-size: 3em; margin: 30px 0;" class="fragment">
+            <span style="opacity: 0.8;">"En mi m&aacute;quina funciona"</span>
+          </div>
+          <p class="fragment" style="font-size: 0.9em; color: var(--text-light);">
+            ...dijo todo desarrollador, al menos una vez
+          </p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>&iquest;Por qu&eacute; pasa esto?</h2>
+          <ul>
+            <li class="fragment">Distintos <span class="highlight">sistemas operativos</span> (Windows, macOS, Linux)</li>
+            <li class="fragment">Distintas <span class="highlight">versiones de librer&iacute;as</span> instaladas</li>
+            <li class="fragment">Distintas <span class="highlight">variables de entorno</span> y configuraciones</li>
+            <li class="fragment">Distintas <span class="highlight">dependencias del sistema</span></li>
+          </ul>
+          <p class="fragment" style="margin-top: 30px; color: var(--accent-orange);">
+            Configurar un entorno de desarrollo puede llevar <strong>horas o d&iacute;as</strong>
+          </p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>La Promesa de Docker</h2>
+          <ul>
+            <li class="fragment"><span class="highlight-green">Empaquetá tu app</span> con todas sus dependencias</li>
+            <li class="fragment"><span class="highlight-green">Ejecutala en cualquier lugar</span> &mdash; tu laptop, el servidor, la nube</li>
+            <li class="fragment"><span class="highlight-green">Mismo entorno</span> para todo el equipo</li>
+          </ul>
+        </section>
+
+        <section data-auto-animate>
+          <h2>&iquest;Qui&eacute;n usa Docker?</h2>
+          <div class="two-columns" style="margin-top: 30px;">
+            <div>
+              <h3 style="font-size: 0.9em;">Desarrollo</h3>
+              <ul style="font-size: 0.75em;">
+                <li class="fragment">Entornos de desarrollo local</li>
+                <li class="fragment">Onboarding de nuevos miembros</li>
+                <li class="fragment">Testing y CI/CD</li>
+              </ul>
+            </div>
+            <div>
+              <h3 style="font-size: 0.9em;">Producci&oacute;n</h3>
+              <ul style="font-size: 0.75em;">
+                <li class="fragment">Despliegues en la nube (AWS, GCP, Azure)</li>
+                <li class="fragment">Arquitectura de microservicios</li>
+                <li class="fragment">Aplicaciones web escalables</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 2. SERVICIOS Y PUERTOS                         -->
+      <!-- ============================================== -->
+      <section>
+        <section class="section-divider">
+          <span class="section-number">02</span>
+          <h2 style="color: #fff;">Servicios y Puertos</h2>
+          <p class="small">C&oacute;mo los procesos se comunican con el exterior</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>&iquest;Qu&eacute; es un Servicio?</h2>
+          <p class="fragment">Un <span class="highlight">proceso</span> que corre continuamente y <span class="highlight">escucha peticiones</span></p>
+          <div style="margin-top: 30px;">
+            <ul style="font-size: 0.85em;">
+              <li class="fragment">Un servidor web (Nginx, Apache)</li>
+              <li class="fragment">Una base de datos (PostgreSQL, MySQL)</li>
+              <li class="fragment">Tu aplicaci&oacute;n (Node.js, Flask, Spring)</li>
+            </ul>
+          </div>
+          <p class="fragment small" style="margin-top: 20px;">
+            Un servicio siempre est&aacute; esperando que alguien le pida algo
+          </p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>&iquest;Qu&eacute; es un Puerto?</h2>
+          <p class="fragment">El <span class="highlight">"n&uacute;mero de puerta"</span> donde escucha un servicio</p>
+          <div class="port-diagram fragment">
+            <div class="server-box">
+              <p style="margin: 0 0 10px 0; font-size: 0.8em;"><strong>Tu Servidor</strong></p>
+              <div>
+                <span class="port-label">:80 HTTP</span>
+                <span class="port-label">:443 HTTPS</span>
+              </div>
+              <div style="margin-top: 6px;">
+                <span class="port-label">:5432 Postgres</span>
+                <span class="port-label">:3306 MySQL</span>
+              </div>
+              <div style="margin-top: 6px;">
+                <span class="port-label">:6379 Redis</span>
+                <span class="port-label">:3000 Tu App</span>
+              </div>
+            </div>
+          </div>
+          <p class="fragment small">Una sola m&aacute;quina puede correr muchos servicios &mdash; cada uno en un <strong>puerto diferente</strong></p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Mapeo de Puertos en Docker</h2>
+          <p style="font-size: 0.85em;">Docker permite mapear un <span class="highlight">puerto del host</span> a un <span class="highlight">puerto del contenedor</span></p>
+          <pre class="fragment"><code class="bash" data-trim>
+docker run -p 8080:80 nginx
+          </code></pre>
+          <div class="port-diagram fragment">
+            <div class="server-box">
+              <p style="margin: 0; font-size: 0.7em;"><strong>Host</strong></p>
+              <span class="port-label">:8080</span>
+            </div>
+            <span class="arrow">&rarr;</span>
+            <div class="server-box" style="border-color: var(--accent-green);">
+              <p style="margin: 0; font-size: 0.7em;"><strong>Contenedor</strong></p>
+              <span class="port-label" style="background: var(--accent-green);">:80</span>
+            </div>
+          </div>
+          <p class="fragment small">
+            Visit&aacute; <span class="inline-code">localhost:8080</span> en el navegador &rarr; llega a Nginx dentro del contenedor en el puerto 80
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 3. CONCEPTOS DE VIRTUALIZACION                 -->
+      <!-- ============================================== -->
+      <section>
+        <section class="section-divider">
+          <span class="section-number">03</span>
+          <h2 style="color: #fff;">Virtualizaci&oacute;n</h2>
+          <p class="small">Dividir una m&aacute;quina en muchas</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>&iquest;Qu&eacute; significa "virtualizar"?</h2>
+          <p class="fragment">Crear una <span class="highlight">versi&oacute;n por software</span> de algo que normalmente es f&iacute;sico</p>
+          <div style="margin: 40px 0; font-size: 0.85em;">
+            <p class="fragment">
+              <strong>Analog&iacute;a:</strong> Un servidor f&iacute;sico es como una <span class="highlight">casa</span>
+            </p>
+            <p class="fragment">
+              La virtualizaci&oacute;n lo divide en <span class="highlight">departamentos</span> &mdash; cada uno independiente
+            </p>
+          </div>
+          <p class="fragment small">
+            Esto no es nuevo &mdash; IBM lo hac&iacute;a en los <strong>a&ntilde;os 60</strong> con mainframes
+          </p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>&iquest;Por qu&eacute; aislar entornos?</h2>
+          <ul style="font-size: 0.85em;">
+            <li class="fragment">
+              <span class="highlight-red">Conflictos de dependencias</span><br>
+              <span class="small">La App A necesita Python 3.8, la App B necesita Python 3.12 &mdash; chocan</span>
+            </li>
+            <li class="fragment">
+              <span class="highlight-orange">Seguridad</span><br>
+              <span class="small">Si una app se ve comprometida, no puede afectar a las dem&aacute;s</span>
+            </li>
+            <li class="fragment">
+              <span class="highlight-green">Reproducibilidad</span><br>
+              <span class="small">El mismo entorno en todos lados: desarrollo, testing, producci&oacute;n</span>
+            </li>
+            <li class="fragment">
+              <span class="highlight">Testing</span><br>
+              <span class="small">Levantar, probar, destruir &mdash; sin ensuciar tu sistema</span>
+            </li>
+          </ul>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Asignaci&oacute;n de Recursos</h2>
+          <p style="font-size: 0.85em;" class="fragment">Un servidor f&iacute;sico suele correr al <span class="highlight-red">10-15% de utilizaci&oacute;n</span></p>
+          <div class="fragment">
+            <div class="resource-bar-container">
+              <div class="resource-bar-label">Sin virtualizaci&oacute;n:</div>
+              <div class="resource-bar">
+                <div class="resource-bar-fill fill-low">~12%</div>
+              </div>
+            </div>
+          </div>
+          <p style="font-size: 0.85em;" class="fragment">La virtualizaci&oacute;n permite <span class="highlight-green">empaquetar m&uacute;ltiples cargas de trabajo</span> en el mismo hardware</p>
+          <div class="fragment">
+            <div class="resource-bar-container">
+              <div class="resource-bar-label">Con virtualizaci&oacute;n:</div>
+              <div class="resource-bar">
+                <div class="resource-bar-fill fill-high">~78%</div>
+              </div>
+            </div>
+          </div>
+          <p class="fragment small" style="margin-top: 20px;">
+            Por esto el <strong>cloud computing</strong> es econ&oacute;micamente viable &mdash; vender porciones en vez de m&aacute;quinas enteras
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 4. VMs vs CONTENEDORES                         -->
+      <!-- ============================================== -->
+      <section>
+        <section class="section-divider">
+          <span class="section-number">04</span>
+          <h2 style="color: #fff;">VMs vs Contenedores</h2>
+          <p class="small">Dos enfoques para el aislamiento</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Comparaci&oacute;n de Arquitectura</h2>
+          <div class="diagram-container">
+            <div class="diagram-box fragment" data-fragment-index="1">
+              <h3 style="color: var(--accent-orange);">M&aacute;quina Virtual</h3>
+              <div class="app-row">
+                <div class="layer app">App A</div>
+                <div class="layer app">App B</div>
+                <div class="layer app">App C</div>
+              </div>
+              <div class="app-row">
+                <div class="layer os">SO Invitado</div>
+                <div class="layer os">SO Invitado</div>
+                <div class="layer os">SO Invitado</div>
+              </div>
+              <div class="layer kernel">Hypervisor</div>
+              <div class="layer" style="background: rgba(255,255,255,0.08);">SO Host</div>
+              <div class="layer" style="background: rgba(255,255,255,0.05);">Hardware</div>
+            </div>
+            <div class="diagram-box fragment" data-fragment-index="2">
+              <h3 style="color: var(--docker-blue);">Contenedor</h3>
+              <div class="app-row">
+                <div class="layer app">App A</div>
+                <div class="layer app">App B</div>
+                <div class="layer app">App C</div>
+              </div>
+              <div class="layer runtime">Docker Engine</div>
+              <div class="layer" style="background: rgba(255,255,255,0.08);">SO Host</div>
+              <div class="layer" style="background: rgba(255,255,255,0.05);">Hardware</div>
+            </div>
+          </div>
+          <p class="fragment small" data-fragment-index="3" style="margin-top: 20px;">
+            Los contenedores <strong>comparten el kernel del host</strong> &mdash; no necesitan un SO invitado por app
+          </p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Comparativa</h2>
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>M&aacute;quina Virtual</th>
+                <th>Contenedor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="fragment">
+                <td><strong>Arranque</strong></td>
+                <td><span class="highlight-red">Minutos</span></td>
+                <td><span class="highlight-green">Segundos</span></td>
+              </tr>
+              <tr class="fragment">
+                <td><strong>Tama&ntilde;o</strong></td>
+                <td><span class="highlight-red">GBs</span> (SO completo)</td>
+                <td><span class="highlight-green">MBs</span> (solo la app)</td>
+              </tr>
+              <tr class="fragment">
+                <td><strong>Aislamiento</strong></td>
+                <td><span class="highlight-green">Fuerte</span> (kernel separado)</td>
+                <td><span class="highlight-orange">Bueno</span> (kernel compartido)</td>
+              </tr>
+              <tr class="fragment">
+                <td><strong>Rendimiento</strong></td>
+                <td><span class="highlight-orange">Overhead</span></td>
+                <td><span class="highlight-green">Casi nativo</span></td>
+              </tr>
+              <tr class="fragment">
+                <td><strong>Densidad</strong></td>
+                <td>~10s por host</td>
+                <td>~100s por host</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section data-auto-animate>
+          <h2>&iquest;Cu&aacute;ndo usar cada uno?</h2>
+          <div class="two-columns" style="margin-top: 20px; font-size: 0.85em;">
+            <div class="fragment">
+              <h3 style="color: var(--accent-orange);">VMs</h3>
+              <ul>
+                <li>Necesit&aacute;s un SO diferente (ej: Windows en Linux)</li>
+                <li>Se requiere aislamiento fuerte de seguridad</li>
+                <li>Aplicaciones legacy</li>
+              </ul>
+            </div>
+            <div class="fragment">
+              <h3>Contenedores</h3>
+              <ul>
+                <li>Microservicios</li>
+                <li>Pipelines de CI/CD</li>
+                <li>Entornos de desarrollo</li>
+                <li>Apps cloud-native</li>
+              </ul>
+            </div>
+          </div>
+          <p class="fragment small" style="margin-top: 30px;">
+            <strong>No son excluyentes</strong> &mdash; en producci&oacute;n, los contenedores suelen correr dentro de VMs
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 5. QUE ES UN CONTENEDOR                        -->
+      <!-- ============================================== -->
+      <section>
+        <section class="section-divider">
+          <span class="section-number">05</span>
+          <h2 style="color: #fff;">&iquest;Qu&eacute; es un Contenedor?</h2>
+          <p class="small">Aislado, liviano, ef&iacute;mero</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Un Contenedor es...</h2>
+          <ul style="font-size: 0.9em;">
+            <li class="fragment">Un <span class="highlight">proceso aislado</span> corriendo en tu m&aacute;quina</li>
+            <li class="fragment"><strong>No</strong> es una VM liviana &mdash; es simplemente un proceso con l&iacute;mites</li>
+            <li class="fragment">Tiene su propio:
+              <ul style="font-size: 0.85em; margin-top: 8px;">
+                <li class="fragment">Sistema de archivos</li>
+                <li class="fragment">Interfaz de red</li>
+                <li class="fragment">Espacio de procesos</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Ef&iacute;meros por Naturaleza</h2>
+          <p style="font-size: 0.85em;" class="fragment">Los contenedores est&aacute;n pensados para ser <span class="highlight-red">destruidos</span> y <span class="highlight-green">recreados</span> f&aacute;cilmente</p>
+          <p style="font-size: 0.85em;" class="fragment">No guardan estado valioso &mdash; tratalos como <span class="highlight">descartables</span></p>
+          <div style="margin: 40px 0; font-size: 1.3em;" class="fragment">
+            <span class="highlight-green">Ganado</span>, no <span class="highlight-orange">mascotas</span>
+          </div>
+          <p class="fragment small">No arregl&aacute;s un contenedor roto &mdash; lo reemplaz&aacute;s</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Ciclo de Vida del Contenedor</h2>
+          <div class="lifecycle">
+            <div class="lifecycle-step fragment" data-fragment-index="1">Creado</div>
+            <span class="lifecycle-arrow fragment" data-fragment-index="2">&rarr;</span>
+            <div class="lifecycle-step active fragment" data-fragment-index="2">Corriendo</div>
+            <span class="lifecycle-arrow fragment" data-fragment-index="3">&rarr;</span>
+            <div class="lifecycle-step fragment" data-fragment-index="3">Detenido</div>
+            <span class="lifecycle-arrow fragment" data-fragment-index="4">&rarr;</span>
+            <div class="lifecycle-step fragment" data-fragment-index="4" style="border-color: var(--accent-red); color: var(--accent-red);">Eliminado</div>
+          </div>
+          <div style="margin-top: 40px; font-size: 0.7em;">
+            <pre class="fragment" data-fragment-index="1"><code class="bash" data-trim>docker create --name myapp nginx</code></pre>
+            <pre class="fragment" data-fragment-index="2"><code class="bash" data-trim>docker start myapp</code></pre>
+            <pre class="fragment" data-fragment-index="3"><code class="bash" data-trim>docker stop myapp</code></pre>
+            <pre class="fragment" data-fragment-index="4"><code class="bash" data-trim>docker rm myapp</code></pre>
+          </div>
+        </section>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 6. QUE ES UNA IMAGEN                           -->
+      <!-- ============================================== -->
+      <section>
+        <section class="section-divider">
+          <span class="section-number">06</span>
+          <h2 style="color: #fff;">&iquest;Qu&eacute; es una Imagen?</h2>
+          <p class="small">La plantilla de los contenedores</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Imagen vs Contenedor</h2>
+          <div class="two-columns" style="margin-top: 30px;">
+            <div class="fragment">
+              <h3>Imagen</h3>
+              <ul style="font-size: 0.8em;">
+                <li>Una <strong>plantilla</strong></li>
+                <li>Solo lectura</li>
+                <li>Puede crear muchos contenedores</li>
+              </ul>
+            </div>
+            <div class="fragment">
+              <h3 style="color: var(--accent-green);">Contenedor</h3>
+              <ul style="font-size: 0.8em;">
+                <li>Una <strong>instancia en ejecuci&oacute;n</strong></li>
+                <li>Capa de lectura-escritura encima</li>
+                <li>Creado a partir de una imagen</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Docker Hub</h2>
+          <p style="font-size: 0.85em;" class="fragment">Un <span class="highlight">registro</span> p&uacute;blico de im&aacute;genes preconstruidas</p>
+          <pre class="fragment"><code class="bash" data-trim>
+# Descargar una imagen oficial
+docker pull nginx:latest
+docker pull python:3.12
+docker pull postgres:16
+docker pull node:20-alpine
+          </code></pre>
+          <p style="font-size: 0.8em; margin-top: 20px;" class="fragment">
+            <span class="inline-code">imagen:tag</span> &mdash; el tag especifica la <strong>versi&oacute;n</strong>
+          </p>
+          <p style="font-size: 0.75em;" class="fragment">
+            Las variantes <span class="inline-code">alpine</span> son im&aacute;genes m&iacute;nimas (~5MB de base)
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 7. DOCKER CLI                                  -->
+      <!-- ============================================== -->
+      <section>
+        <section class="section-divider">
+          <span class="section-number">07</span>
+          <h2 style="color: #fff;">Docker CLI</h2>
+          <p class="small">Manos a la terminal</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Tu Primer Contenedor</h2>
+          <pre class="fragment"><code class="bash" data-trim>
+# Descargar y ejecutar Nginx
+docker run -d -p 8080:80 --name web nginx
+          </code></pre>
+          <div style="font-size: 0.75em; margin-top: 20px;">
+            <p class="fragment"><span class="inline-code">-d</span> &rarr; correr en segundo plano (detached)</p>
+            <p class="fragment"><span class="inline-code">-p 8080:80</span> &rarr; mapear puerto 8080 del host al 80 del contenedor</p>
+            <p class="fragment"><span class="inline-code">--name web</span> &rarr; darle un nombre amigable</p>
+            <p class="fragment"><span class="inline-code">nginx</span> &rarr; la imagen a usar</p>
+          </div>
+          <p class="fragment" style="margin-top: 20px; font-size: 0.85em;">
+            Abr&iacute; <span class="inline-code">http://localhost:8080</span> en el navegador
+          </p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Inspeccionando Contenedores</h2>
+          <pre><code class="bash" data-trim data-noescape>
+<span class="fragment"># Listar contenedores corriendo
+docker ps</span>
+
+<span class="fragment"># Listar TODOS los contenedores (incluidos los detenidos)
+docker ps -a</span>
+
+<span class="fragment"># Ver logs del contenedor
+docker logs web</span>
+
+<span class="fragment"># Seguir logs en tiempo real
+docker logs -f web</span>
+          </code></pre>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Interactuando con Contenedores</h2>
+          <pre><code class="bash" data-trim data-noescape>
+<span class="fragment"># Abrir una shell dentro del contenedor
+docker exec -it web bash</span>
+
+<span class="fragment"># Ejecutar un comando puntual adentro
+docker exec web cat /etc/nginx/nginx.conf</span>
+          </code></pre>
+          <div style="margin-top: 20px; font-size: 0.75em;">
+            <p class="fragment"><span class="inline-code">-it</span> = interactivo + TTY &rarr; te da una terminal adentro</p>
+          </div>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Comandos de Ciclo de Vida</h2>
+          <pre><code class="bash" data-trim data-noescape>
+<span class="fragment"># Detener un contenedor corriendo
+docker stop web</span>
+
+<span class="fragment"># Iniciar un contenedor detenido
+docker start web</span>
+
+<span class="fragment"># Eliminar un contenedor detenido
+docker rm web</span>
+
+<span class="fragment"># Forzar eliminaci&oacute;n de un contenedor corriendo
+docker rm -f web</span>
+          </code></pre>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Comandos de Im&aacute;genes</h2>
+          <pre><code class="bash" data-trim data-noescape>
+<span class="fragment"># Descargar una imagen
+docker pull python:3.12</span>
+
+<span class="fragment"># Listar im&aacute;genes locales
+docker images</span>
+
+<span class="fragment"># Eliminar una imagen
+docker rmi python:3.12</span>
+
+<span class="fragment"># Construir una imagen desde un Dockerfile
+docker build -t myapp:1.0 .</span>
+          </code></pre>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Resumen de Comandos</h2>
+          <table style="font-size: 0.6em;">
+            <thead>
+              <tr>
+                <th>Comando</th>
+                <th>Qu&eacute; hace</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>docker run</code></td><td>Crear e iniciar un contenedor</td></tr>
+              <tr><td><code>docker ps</code></td><td>Listar contenedores corriendo</td></tr>
+              <tr><td><code>docker stop/start</code></td><td>Detener o iniciar un contenedor</td></tr>
+              <tr><td><code>docker rm</code></td><td>Eliminar un contenedor</td></tr>
+              <tr><td><code>docker logs</code></td><td>Ver la salida del contenedor</td></tr>
+              <tr><td><code>docker exec</code></td><td>Ejecutar un comando dentro de un contenedor</td></tr>
+              <tr><td><code>docker pull</code></td><td>Descargar una imagen</td></tr>
+              <tr><td><code>docker build</code></td><td>Construir imagen desde Dockerfile</td></tr>
+              <tr><td><code>docker images</code></td><td>Listar im&aacute;genes locales</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 8. VOLUMENES                                   -->
+      <!-- ============================================== -->
+      <section>
+        <section class="section-divider">
+          <span class="section-number">08</span>
+          <h2 style="color: #fff;">Vol&uacute;menes</h2>
+          <p class="small">Datos persistentes en un mundo ef&iacute;mero</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>El Problema</h2>
+          <div style="margin: 40px 0;">
+            <p class="fragment" style="font-size: 1.1em;">El contenedor muere &rarr; <span class="highlight-red">los datos mueren</span></p>
+          </div>
+          <p class="fragment" style="font-size: 0.85em;">
+            &iquest;Qu&eacute; pasa con tu base de datos? &iquest;Tus archivos subidos? &iquest;Tus logs?
+          </p>
+          <p class="fragment" style="font-size: 0.85em;">
+            Necesit&aacute;s una forma de <span class="highlight">persistir datos</span> fuera del contenedor
+          </p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>La Soluci&oacute;n: Vol&uacute;menes</h2>
+          <div class="volume-diagram">
+            <div class="container-box fragment">
+              <p style="margin: 0; font-size: 0.7em;"><strong>Contenedor</strong></p>
+              <p style="margin: 5px 0 0 0; font-size: 0.6em;">/var/lib/postgresql/data</p>
+            </div>
+            <span class="arrow fragment">&harr;</span>
+            <div class="volume-box fragment">
+              <p style="margin: 0; font-size: 0.7em;"><strong>Volumen</strong></p>
+              <p style="margin: 5px 0 0 0; font-size: 0.6em;">pgdata (en disco del host)</p>
+            </div>
+          </div>
+          <p class="fragment small">Los datos viven en el <strong>host</strong> &mdash; sobreviven a la eliminaci&oacute;n del contenedor</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Dos Tipos</h2>
+          <div class="two-columns" style="margin-top: 30px; font-size: 0.85em;">
+            <div class="fragment">
+              <h3 style="color: var(--accent-orange);">Vol&uacute;menes con Nombre</h3>
+              <p style="font-size: 0.8em;">Gestionados por Docker</p>
+              <pre><code class="bash" data-trim>
+docker run -d \
+  -v pgdata:/var/lib/postgresql/data \
+  postgres:16
+              </code></pre>
+            </div>
+            <div class="fragment">
+              <h3 style="color: var(--accent-green);">Bind Mounts</h3>
+              <p style="font-size: 0.8em;">Mapean un directorio del host directamente</p>
+              <pre><code class="bash" data-trim>
+docker run -d \
+  -v ./mi-codigo:/app \
+  python:3.12
+              </code></pre>
+            </div>
+          </div>
+          <p class="fragment small" style="margin-top: 20px;">
+            Los <strong>bind mounts</strong> son ideales para desarrollo &mdash; edit&aacute;s c&oacute;digo en tu host, los cambios se ven en el contenedor
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 9. NETWORKING                                  -->
+      <!-- ============================================== -->
+      <section>
+        <section class="section-divider">
+          <span class="section-number">09</span>
+          <h2 style="color: #fff;">Networking</h2>
+          <p class="small">C&oacute;mo se comunican los contenedores</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Red Bridge por Defecto</h2>
+          <p class="fragment" style="font-size: 0.85em;">Docker crea una <span class="highlight">red aislada</span> para los contenedores</p>
+          <div class="network-diagram fragment">
+            <div style="font-size: 0.7em; color: var(--text-light);">M&aacute;quina Host</div>
+            <div class="network-bridge">
+              <div style="text-align: center; font-size: 0.75em; color: var(--docker-blue);">
+                <strong>docker0 bridge</strong>
+              </div>
+              <div class="containers-row">
+                <div class="mini-container">
+                  <strong>web</strong><br>
+                  172.17.0.2:80
+                </div>
+                <div class="mini-container">
+                  <strong>api</strong><br>
+                  172.17.0.3:3000
+                </div>
+                <div class="mini-container">
+                  <strong>db</strong><br>
+                  172.17.0.4:5432
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Publicaci&oacute;n de Puertos</h2>
+          <p style="font-size: 0.85em;">Los contenedores est&aacute;n <span class="highlight-red">aislados por defecto</span> &mdash; sin acceso externo</p>
+          <p class="fragment" style="font-size: 0.85em;">
+            Us&aacute; <span class="inline-code">-p</span> para <span class="highlight-green">publicar</span> un puerto hacia el host
+          </p>
+          <pre class="fragment"><code class="bash" data-trim>
+# Mapeo expl&iacute;cito
+docker run -p 8080:80 nginx
+
+# Mapear a un puerto aleatorio del host
+docker run -P nginx
+
+# Vincular a una interfaz espec&iacute;fica
+docker run -p 127.0.0.1:8080:80 nginx
+          </code></pre>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Descubrimiento de Servicios en Compose</h2>
+          <p class="fragment" style="font-size: 0.85em;">
+            En Docker Compose, los contenedores se alcanzan por <span class="highlight">nombre de servicio</span>
+          </p>
+          <pre class="fragment"><code class="python" data-trim>
+# Dentro del contenedor "api", conectarse a la base de datos:
+connection = psycopg2.connect(
+    host="db",        # &lt;-- solo el nombre del servicio!
+    port=5432,
+    database="myapp"
+)
+          </code></pre>
+          <p class="fragment small">No hacen falta direcciones IP &mdash; Docker resuelve el DNS autom&aacute;ticamente</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Drivers de Red</h2>
+          <table style="font-size: 0.7em;">
+            <thead>
+              <tr>
+                <th>Driver</th>
+                <th>Caso de Uso</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="fragment">
+                <td><span class="inline-code">bridge</span></td>
+                <td>Por defecto. Contenedores en el mismo host se comunican por un puente virtual</td>
+              </tr>
+              <tr class="fragment">
+                <td><span class="inline-code">host</span></td>
+                <td>El contenedor comparte la red del host directamente (sin aislamiento)</td>
+              </tr>
+              <tr class="fragment">
+                <td><span class="inline-code">none</span></td>
+                <td>Sin red (totalmente aislado)</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="fragment small" style="margin-top: 20px;">
+            Para esta materia, <span class="inline-code">bridge</span> es todo lo que necesitan
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 10. DOCKER COMPOSE                             -->
+      <!-- ============================================== -->
+      <section>
+        <section class="section-divider">
+          <span class="section-number">10</span>
+          <h2 style="color: #fff;">Docker Compose</h2>
+          <p class="small">Aplicaciones multi-contenedor de forma simple</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>El Problema</h2>
+          <p style="font-size: 0.85em;">Una app real tiene <span class="highlight">m&uacute;ltiples servicios</span></p>
+          <pre class="fragment"><code class="bash" data-trim>
+# Levantar todo manualmente...
+docker run -d --name db -v pgdata:/var/lib/postgresql/data postgres:16
+docker run -d --name redis redis:7
+docker run -d --name api -p 3000:3000 --link db --link redis myapp
+docker run -d --name web -p 8080:80 --link api nginx
+          </code></pre>
+          <p class="fragment" style="font-size: 0.9em; color: var(--accent-red); margin-top: 20px;">
+            Tedioso. Propenso a errores. Dif&iacute;cil de reproducir.
+          </p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>La Soluci&oacute;n: Compose</h2>
+          <p style="font-size: 0.85em;" class="fragment">Definir todo en un solo <span class="inline-code">docker-compose.yml</span></p>
+          <pre class="fragment"><code class="yaml" data-trim data-line-numbers="|1-2|3-9|10-16|17-20">
+services:
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: myapp
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: ./api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+
+  web:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+
+volumes:
+  pgdata:
+          </code></pre>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Comandos de Compose</h2>
+          <pre><code class="bash" data-trim data-noescape>
+<span class="fragment"># Levantar todos los servicios (construir si es necesario)
+docker compose up -d</span>
+
+<span class="fragment"># Ver servicios corriendo
+docker compose ps</span>
+
+<span class="fragment"># Ver logs de todos los servicios
+docker compose logs -f</span>
+
+<span class="fragment"># Detener y eliminar todo
+docker compose down</span>
+
+<span class="fragment"># Detener, eliminar Y borrar vol&uacute;menes
+docker compose down -v</span>
+          </code></pre>
+        </section>
+
+        <section data-auto-animate>
+          <h2>&iquest;Por qu&eacute; Compose?</h2>
+          <ul style="font-size: 0.85em;">
+            <li class="fragment"><span class="highlight-green">Un archivo</span> describe todo tu stack</li>
+            <li class="fragment"><span class="highlight-green">Un comando</span> para levantar todo</li>
+            <li class="fragment"><span class="highlight-green">Networking</span> entre servicios es autom&aacute;tico</li>
+            <li class="fragment"><span class="highlight-green">Reproducible</span> &mdash; commitealo a git, compartilo con el equipo</li>
+          </ul>
+          <p class="fragment small" style="margin-top: 20px;">
+            &iquest;Nuevo integrante del equipo?&ensp;<span class="inline-code">git clone</span> + <span class="inline-code">docker compose up</span> = listo
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- 11. DOCKERFILE                                 -->
+      <!-- ============================================== -->
+      <section>
+        <section class="section-divider">
+          <span class="section-number">11</span>
+          <h2 style="color: #fff;">Dockerfile</h2>
+          <p class="small">Construyendo tus propias im&aacute;genes</p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>&iquest;Qu&eacute; es un Dockerfile?</h2>
+          <p class="fragment" style="font-size: 0.85em;">Un <span class="highlight">archivo de texto</span> con instrucciones para construir una imagen</p>
+          <p class="fragment" style="font-size: 0.85em;">Como una <span class="highlight">receta</span> &mdash; cada l&iacute;nea es un paso</p>
+          <pre class="fragment"><code class="docker" data-trim>
+# Todo Dockerfile arranca desde una imagen base
+FROM python:3.12-slim
+          </code></pre>
+          <p class="fragment small">
+            No arranc&aacute;s de cero &mdash; te par&aacute;s sobre los hombros de im&aacute;genes existentes
+          </p>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Instrucciones Clave</h2>
+          <table style="font-size: 0.65em;">
+            <thead>
+              <tr>
+                <th>Instrucci&oacute;n</th>
+                <th>Qu&eacute; hace</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="fragment"><td><code>FROM</code></td><td>Imagen base desde la que se parte</td></tr>
+              <tr class="fragment"><td><code>WORKDIR</code></td><td>Establece el directorio de trabajo dentro de la imagen</td></tr>
+              <tr class="fragment"><td><code>COPY</code></td><td>Copia archivos de tu m&aacute;quina a la imagen</td></tr>
+              <tr class="fragment"><td><code>RUN</code></td><td>Ejecuta un comando durante la construcci&oacute;n (instalar paquetes, etc.)</td></tr>
+              <tr class="fragment"><td><code>EXPOSE</code></td><td>Documenta qu&eacute; puerto usa la app</td></tr>
+              <tr class="fragment"><td><code>CMD</code></td><td>Comando por defecto al iniciar el contenedor</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Ejemplo Pr&aacute;ctico</h2>
+          <p style="font-size: 0.8em;">Containerizando una aplicaci&oacute;n Flask</p>
+          <div class="two-columns" style="font-size: 0.85em;">
+            <div>
+              <p style="font-size: 0.8em; color: var(--docker-blue);"><strong>app.py</strong></p>
+              <pre><code class="python" data-trim>
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route("/")
+def hello():
+    return "Hola desde Docker!"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+              </code></pre>
+            </div>
+            <div>
+              <p style="font-size: 0.8em; color: var(--docker-blue);"><strong>requirements.txt</strong></p>
+              <pre><code data-trim>
+flask==3.0.0
+              </code></pre>
+            </div>
+          </div>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Ejemplo Pr&aacute;ctico</h2>
+          <p style="font-size: 0.8em; color: var(--docker-blue);"><strong>Dockerfile</strong></p>
+          <pre><code class="docker" data-trim data-line-numbers="|1|3|5-6|8|10|12">
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+EXPOSE 5000
+
+CMD ["python", "app.py"]
+          </code></pre>
+        </section>
+
+        <section data-auto-animate>
+          <h2>Construir y Ejecutar</h2>
+          <pre class="fragment"><code class="bash" data-trim>
+# Construir la imagen
+docker build -t mi-flask-app .
+          </code></pre>
+          <pre class="fragment"><code class="bash" data-trim>
+# Ejecutarla
+docker run -d -p 5000:5000 --name flask mi-flask-app
+          </code></pre>
+          <pre class="fragment"><code class="bash" data-trim>
+# Probarla
+curl http://localhost:5000
+# Hola desde Docker!
+          </code></pre>
+          <p class="fragment" style="margin-top: 20px; font-size: 0.85em;">
+            De c&oacute;digo a contenedor corriendo en <span class="highlight-green">3 comandos</span>
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- CIERRE                                         -->
+      <!-- ============================================== -->
+      <section>
+        <section data-auto-animate>
+          <h2>Resumen</h2>
+          <ol style="font-size: 0.75em;">
+            <li class="fragment">Docker resuelve el problema de <strong>"en mi m&aacute;quina funciona"</strong></li>
+            <li class="fragment">Los <strong>servicios</strong> escuchan en <strong>puertos</strong> &mdash; Docker los mapea entre host y contenedor</li>
+            <li class="fragment">La <strong>virtualizaci&oacute;n</strong> permite compartir hardware de forma eficiente</li>
+            <li class="fragment">Los <strong>contenedores</strong> son livianos, r&aacute;pidos y ef&iacute;meros (a diferencia de las VMs)</li>
+            <li class="fragment">Las <strong>im&aacute;genes</strong> son las plantillas &mdash; inmutables</li>
+            <li class="fragment">La <strong>CLI</strong> te da control total: run, stop, logs, exec</li>
+            <li class="fragment">Los <strong>vol&uacute;menes</strong> persisten datos m&aacute;s all&aacute; del ciclo de vida del contenedor</li>
+            <li class="fragment">El <strong>networking</strong> permite que los contenedores se comuniquen entre s&iacute;</li>
+            <li class="fragment"><strong>Compose</strong> orquesta apps multi-contenedor con un solo archivo</li>
+            <li class="fragment">Los <strong>Dockerfiles</strong> permiten construir tus propias im&aacute;genes</li>
+          </ol>
+        </section>
+
+        <section>
+          <h2 style="color: var(--docker-blue);">&iquest;Preguntas?</h2>
+          <div style="margin-top: 50px; font-size: 0.85em;">
+            <p>Recursos &uacute;tiles:</p>
+            <ul style="font-size: 0.8em;">
+              <li>Docker Docs: <span class="inline-code">docs.docker.com</span></li>
+              <li>Docker Hub: <span class="inline-code">hub.docker.com</span></li>
+              <li>Docker Labs: <span class="inline-code">docs.docker.com/guides/lab-container-getting-started/</span></li>
+            </ul>
+          </div>
+        </section>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      slideNumber: true,
+      transition: 'slide',
+      transitionSpeed: 'default',
+      plugins: [RevealHighlight, RevealNotes],
+      // Vertical slides navigation
+      navigationMode: 'default',
+      // Auto-animate settings
+      autoAnimateDuration: 0.7,
+      autoAnimateEasing: 'ease-out',
+    });
+  </script>
+</body>
+</html>
