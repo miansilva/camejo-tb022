@@ -72,6 +72,156 @@ COPY . .
 
 ---
 
+## 3.1. Flujo de trabajo práctico y evolución didáctica: De 0 a Docker Compose
+
+Para comprender la verdadera razón de ser de cada herramienta dentro de Docker sin asumir conceptos previa o arbitrariamente, resulta fundamental analizar la evolución progresiva del flujo de trabajo:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  1. CONTENEDOR MANUAL (1 APP)                                │
+│     docker run + apt/npm a mano dentro del contenedor        │
+└──────────────────────────────────────────────────────────────┘
+                               │
+                ¿Cómo automatizo la imagen?
+                               ▼
+┌──────────────────────────────────────────────────────────────┐
+│  2. IMAGEN CON DOCKERFILE (1 APP)                            │
+│     Receta inmutable, portable y reusable                    │
+└──────────────────────────────────────────────────────────────┘
+                               │
+               ¿Cómo conecto la BD y Red a mano?
+                               ▼
+┌──────────────────────────────────────────────────────────────┐
+│  3. MULTICONTENEDOR A MANO (APP + BD)                        │
+│     Crear red, volumen y conectar contenedores a mano        │
+└──────────────────────────────────────────────────────────────┘
+                               │
+             ¿Cómo evito toda la config manual?
+                               ▼
+┌──────────────────────────────────────────────────────────────┐
+│  4. ORQUESTACIÓN CON DOCKER COMPOSE                          │
+│     Todo declarado y automatizado en 1 manifiesto YAML       │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Paso 1: Configurar 1 contenedor a mano (Comandos puros)
+
+* **Concepto:** Arrancamos un contenedor básico limpio y entramos a la consola para instalar todo manualmente.
+* **Comandos:**
+  ```bash
+  # 1. Crear y entrar a un contenedor de Ubuntu en modo interactivo
+  docker run -it -p 3000:3000 --name app_manual ubuntu bash
+
+  # 2. Adentro del contenedor (root@id:/#), instalamos Python y creamos la app a mano:
+  apt update && apt install -y python3
+  echo "print('Hola mundo desde contenedor manual')" > app.py
+  python3 app.py
+  ```
+* **El problema:** Los contenedores son **efímeros**. Si borrables el contenedor (`docker rm -f app_manual`), **se pierde todo** lo instalado adentro.
+
+---
+
+### Paso 2: Automatizar la imagen con `Dockerfile` (La Receta)
+
+* **Concepto:** En lugar de instalar a mano en la consola, guardamos las instrucciones en un archivo `Dockerfile`.
+* **Archivo `Dockerfile`:**
+  ```dockerfile
+  # 1. Partimos de una imagen limpia con Python listo
+  FROM python:3.10-slim
+
+  # 2. Definimos la carpeta de trabajo
+  WORKDIR /app
+
+  # 3. Copiamos nuestro archivo al contenedor
+  COPY app.py .
+
+  # 4. Ejecutamos la app
+  CMD ["python", "app.py"]
+  ```
+* **Comandos:**
+  ```bash
+  # 1. Crear la imagen reusable
+  docker build -t mi-app-python .
+
+  # 2. Correr el contenedor desde la imagen
+  docker run mi-app-python
+  ```
+* **La mejora:** La imagen es **reusable**. Cualquier persona del equipo puede construir el mismo entorno.
+* **El nuevo problema:** Nuestra aplicación ahora necesita conectarse a una **Base de Datos (Redis)**. ¿Cómo las conectamos a mano usando solo comandos de Docker?
+
+---
+
+### Paso 3: Conectar múltiples contenedores A MANO (El dolor de Redes y Volúmenes)
+
+Si queremos conectar nuestra App con una Base de Datos **sin usar Docker Compose**, estamos obligados a hacer **TODO manualmente desde la terminal**:
+
+1. **Crear la red virtual a mano:**
+   ```bash
+   # Docker crea una red bridge aislada
+   docker network create mi-red
+   ```
+2. **Crear el volumen de datos a mano (para que la BD no pierda información):**
+   ```bash
+   # Docker reserva un espacio en disco administrado
+   docker volume create datos-db
+   ```
+3. **Levantar la Base de Datos en esa red y con ese volumen:**
+   ```bash
+   docker run -d --name mi-redis --network mi-red -v datos-db:/data redis:alpine
+   ```
+4. **Levantar nuestra App en la MISMA red para que pueda encontrar a Redis por su nombre (`mi-redis`):**
+   ```bash
+   docker run -d --name mi-app --network mi-red -p 3000:3000 mi-app-python
+   ```
+
+* **El gran problema:**
+  * Hay que recordar y ejecutar **4 comandos complejos y largos en orden estricto**.
+  * Si te olvidás de pasar el parámetro `--network mi-red`, los contenedores **no se ven entre sí**.
+  * Es muy difícil de compartir con otros desarrolladores.
+
+---
+
+### Paso 4: Automatizar TODO con `Docker Compose`
+
+* **Concepto:** Reemplazamos todos los comandos manuales de creación de redes, volúmenes y contenedores por un único archivo estructurado llamado `docker-compose.yml`.
+
+* **Archivo `docker-compose.yml`:**
+  ```yaml
+  version: '3.8'
+
+  services:
+    # Servicio 1: Nuestra App
+    app:
+      build: .
+      ports:
+        - "3000:3000"
+
+    # Servicio 2: Base de Datos Redis
+    redis:
+      image: redis:alpine
+      volumes:
+        - datos-redis:/data   # Guarda los datos en el volumen
+
+  volumes:
+    datos-redis:              # Compose crea este volumen automáticamente
+  ```
+
+* **El beneficio definitivo:**
+  * **No tenés que crear redes a mano:** Docker Compose crea una red compartida automáticamente para todos los servicios del archivo.
+  * **No tenés que crear volúmenes a mano:** Compose crea los volúmenes declarados.
+  * **Un solo comando para todo:**
+    ```bash
+    # Levanta la App, Redis, crea la red interna y los volúmenes automáticos:
+    docker compose up -d
+
+    # Apaga y limpia todo el sistema:
+    docker compose down
+    ```
+
+---
+
 ## 4. Guía completa de `Dockerfile` y construcción multi-stage
 
 ### Instrucciones principales
