@@ -4,8 +4,9 @@ Repositorio centralizado con guías de estudio completas por unidad y bibliograf
 
 > [!NOTE]
 > **Notas sobre el material, organización y autoría:**
-> - **Autoría y herramientas**: Este repositorio y los apuntes de la carpeta `apuntes/` fueron redactados y enriquecidos sobre la base de los contenidos, diapositivas y programa de la materia.
-> - **Organización**: La división y numeración en 9 módulos en `apuntes/` responde a una estructuración lógica para optimizar el estudio y repaso personal.
+> - **Generación del README**: Este archivo `README.md` fue estructurado con asistencia de IA.
+> - **Elaboración de apuntes**: Las guías de estudio en `apuntes/` fueron redactadas a partir de clases y notas propias, complementadas y organizadas con asistencia de IA tomando como referencia la bibliografía y diapositivas de la cátedra.
+> - **Organización**: La división en 9 módulos en `apuntes/` responde a una estructuración lógica para optimizar el estudio y repaso personal.
 > - **Bibliografía**: El material en `bibliografia/` es complementario. Las guías y la bibliografía oficial completa están disponibles en la [web oficial del curso](https://www.intro-camejo.com.ar/).
 
 ---
@@ -17,7 +18,7 @@ Los contenidos teóricos completos para estudiar cada unidad se encuentran organ
 1. [`01-introduccion-e-ingenieria.md`](./apuntes/01-introduccion-e-ingenieria.md) - Introducción a la materia, Ingeniería de Software, crisis del software (1968), SDLC, ISO/IEC 25010 (RNF), Waterfall, V-Model, metodologías ágiles (Scrum/Kanban), principios DRY/KISS/YAGNI, deuda técnica y pirámide de testing.
 2. [`02-entorno-y-linux.md`](./apuntes/02-entorno-y-linux.md) - Arquitectura UNIX/Linux, espacio del Kernel vs espacio de usuario, jerarquía FHS (`/proc`, `/sys`), permisos POSIX (notación octal, `umask`, SUID/SGID/Sticky bit), administración de procesos (`kill`, background `&`) y editores Nano/Vim.
 3. [`03-git-y-ssh.md`](./apuntes/03-git-y-ssh.md) - VCS centralizado vs distribuido, internals de Git (blobs, trees, commits, tags), llaves SSH (`ed25519`), comandos `reset`/`restore`/`revert`, rebase interactivo (`git rebase -i`), resolución de conflictos y workflows (Git Flow, GitHub Flow, Trunk-Based).
-4. [`04-bash-y-regex.md`](./apuntes/04-bash-y-regex.md) - Shell Unix, Bash scripting, modo estricto (`set -euo pipefail`), expansiones de parámetros (`${var#}`/`${var%}`), `[[ ... ]]` vs `[ ... ]`, redirecciones, `tee`, trampas `trap` y expresiones regulares con `grep`, `sed` y `awk`.
+4. [`04-bash-y-regex.md`](./apuntes/04-bash-y-regex.md) - Historia y arquitectura de la Shell Unix, atajos de terminal, modelo de permisos POSIX, Bash scripting, modo estricto (`set -euo pipefail`), expansiones de parámetros, redirecciones I/O, `[[ ... ]]` vs `[ ... ]`, `trap` y procesamiento de texto con Regex (`grep`, `sed`, `awk`).
 5. [`05-bases-de-datos-y-sql.md`](./apuntes/05-bases-de-datos-y-sql.md) - Modelo relacional, diseño E-R, normalización (1NF a 3NF), sublenguajes (DDL, DML, DQL, TCL), orden de ejecución en `SELECT`, JOINs (Inner, Left, Right, Full), subconsultas correlacionadas y transacciones ACID.
 6. [`06-docker-y-contenedores.md`](./apuntes/06-docker-y-contenedores.md) - Virtualización vs Contenedores (namespaces, cgroups), buenas prácticas en Dockerfile, optimización de caché, Multi-Stage Builds, persistencia (Volumes vs Bind Mounts), redes Docker y orquestación con Docker Compose.
 7. [`07-html-y-css.md`](./apuntes/07-html-y-css.md) - HTML5 semántico, validación nativa de formularios, especificidad en CSS3, modelo de caja (`content-box` vs `border-box`), Flexbox (1D), CSS Grid (2D), posicionamiento y Responsive Web Design.
