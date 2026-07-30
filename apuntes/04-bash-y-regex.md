@@ -151,56 +151,51 @@ Linux organiza los archivos bajo un único árbol jerárquico cuyo origen absolu
 * **`[a-z]`**: Coincide con un rango de caracteres (`ls [a-z]*.txt`).
 * **`[!abc]`**: Negación; coincide con caracteres que NO estén en la lista.
 
----
+### 2.3. Permisos prácticos para la ejecución de scripts
 
-### 2.3. Permisos de archivos y modelo de seguridad
+Para que la shell pueda interpretar un archivo de script (ej. `./mi_script.sh`), el usuario debe contar explícitamente con **permiso de ejecución (`x`)**.
 
-Cada archivo o directorio en Unix posee un esquema de permisos asignado a 3 entidades:
-1. **Propietario (`u` - User)**: El usuario creador del archivo.
-2. **Grupo (`g` - Group)**: El grupo de usuarios asociado al archivo.
-3. **Otros (`o` - Others)**: El resto de los usuarios del sistema.
+> 📖 **Referencia teórica completa:** Para profundizar en el modelo de seguridad POSIX, usuarios/grupos, cálculo de modos octales (`755`, `644`), `umask` y permisos especiales (SUID/SGID), consultar la guía del [Módulo 02: Entorno de desarrollo y Linux](./02-entorno-y-linux.md#3-modelo-de-permisos-posix-propiedad-y-modos-octales).
 
-```
-Visualización con 'ls -l':
-
-- r w x r - x r - -   1   usuario   grupo   4096   mar 12 10:00   script.sh
-│ └──┬──┘ └──┬──┘ └──┬──┘
-│    │       │       └── Permisos de Otros (r--) -> Solo lectura (4)
-│    │       └────────── Permisos de Grupo (r-x) -> Lectura y ejecución (4+1=5)
-│    └────────────────── Permisos del Propietario (rwx) -> Lectura, escritura y ejecución (4+2+1=7)
-└─────────────────────── Tipo de archivo (- archivo normal, d directorio, l enlace simbólico)
-```
-
-#### Notación octal / numérica
-Cada permiso individual tiene una representación numérica decimal:
-* **`r` (Read / Lectura)** = `4`
-* **`w` (Write / Escritura)** = `2`
-* **`x` (Execute / Ejecución)** = `1`
-
-Se suman los valores correspondientes para cada rol:
-
-| Permisos | Operación de suma | Código octal | Descripción |
-| :---: | :---: | :---: | :--- |
-| `rwx` | $4 + 2 + 1$ | **`7`** | Control total (lectura, escritura y ejecución). |
-| `rw-` | $4 + 2 + 0$ | **`6`** | Lectura y escritura (estándar para archivos de datos). |
-| `r-x` | $4 + 0 + 1$ | **`5`** | Lectura y ejecución (estándar para scripts y carpetas). |
-| `r--` | $4 + 0 + 0$ | **`4`** | Solo lectura. |
-| `---` | $0 + 0 + 0$ | **`0`** | Sin ningún permiso de acceso. |
-
-#### Comandos `chmod` y `chown`
+#### Asignación de permisos de ejecución
 ```bash
-# Otorgar permisos ejecutables al propietario y lectura/ejecución al resto (755)
-chmod 755 script.sh
+# Otorgar permiso de ejecución al propietario (Recomendado para desarrollo)
+chmod u+x mi_script.sh
 
-# Otorgar permiso de ejecución exclusivamente al propietario usando notación simbólica
-chmod u+x script.sh
+# Otorgar permiso de ejecución a todos los usuarios (Forma simbólica)
+chmod +x mi_script.sh
 
-# Cambiar el propietario y el grupo de un archivo
-sudo chown usuario:grupo archivo.txt
-
-# Aplicar permisos de forma recursiva a todo el contenido de un directorio
-chmod -R 644 /var/www/html/
+# Asignar modo octal 755 (rwxr-xr-x: lectura/escritura/ejecución al dueño, lectura/ejecución al resto)
+chmod 755 mi_script.sh
 ```
+
+#### Comprobación de permisos y archivos en condicionales de Bash
+En scripting es una buena práctica verificar los permisos y la existencia de un archivo antes de intentar leerlo o ejecutarlo:
+
+```bash
+SCRIPT="./backup.sh"
+
+# -f : Verifica si el recurso existe y es un archivo regular
+# -x : Verifica si el archivo tiene permiso de ejecución
+if [[ -f "$SCRIPT" && -x "$SCRIPT" ]]; then
+    echo "El script existe y es ejecutable. Iniciando..."
+    "$SCRIPT"
+else
+    echo "Error: El archivo no existe o no tiene permisos de ejecución (+x)."
+fi
+```
+
+#### Operadores comunes de verificación de recursos
+
+| Operador | Condición de verificación verdadera |
+| :---: | :--- |
+| **`-f`** | El recurso existe y es un archivo regular (*file*). |
+| **`-d`** | El recurso existe y es un directorio (*directory*). |
+| **`-e`** | El recurso simplemente existe (*exists*). |
+| **`-r`** | El archivo existe y el usuario tiene permiso de **lectura** (*read*). |
+| **`-w`** | El archivo existe y el usuario tiene permiso de **escritura** (*write*). |
+| **`-x`** | El archivo existe y el usuario tiene permiso de **ejecución** (*executable*). |
+| **`-s`** | El archivo existe y su tamaño es mayor a 0 bytes (no está vacío). |
 
 ---
 
