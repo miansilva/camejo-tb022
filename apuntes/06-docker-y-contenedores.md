@@ -1,175 +1,225 @@
-# Módulo 06: Contenedores y arquitectura Docker
+# Módulo 06: Virtualización, Docker y orquestación de contenedores
 
-Guía de estudio completa para dominar la virtualización basada en **contenedores con Docker**, la optimización de **`Dockerfile`**, la persistencia de datos y la orquestación con **Docker Compose**.
+Guía de estudio conceptual y técnica completa sobre **contenedores, arquitectura Docker Engine, construcción optima con Dockerfile, multi-stage builds, persistencia de datos, redes y orquestación con Docker Compose**.
 
 ---
 
-## 1. Virtualización tradicional vs contenedores
-
-### Máquinas virtuales (VMs)
-Una máquina virtual emula un sistema informático completo sobre un **Hypervisor** (Hypervisor Tipo 1 como ESXi/Proxmox o Tipo 2 como VirtualBox).
-- **Desventajas**: Cada VM incluye un sistema operativo completo (*Guest OS*), consumiendo gigabytes de memoria RAM, espacio en disco duro y minutos de tiempo de arranque.
-
-### Contenedores (Docker)
-Los contenedores **comparten el mismo Kernel del sistema operativo Host**. No ejecutan un SO propio, lo que les permite arrancar en milisegundos y consumir recursos mínimos de RAM y CPU.
+## 1. Virtualización tradicional vs. contenedores
 
 ```
 ┌─────────────────────────────────────────┐    ┌─────────────────────────────────────────┐
-│         VIRTUALIZACIÓN (VMs)            │    │        CONTENEDORES (DOCKER)            │
+│       MÁQUINAS VIRTUALES (VMs)          │    │         CONTENEDORES (DOCKER)           │
 ├─────────────┬─────────────┬─────────────┤    ├─────────────┬─────────────┬─────────────┤
-│    App A    │    App B    │    App C    │    │    App A    │    App B    │    App C    │
+│  Aplicación │  Aplicación │  Aplicación │    │  Aplicación │  Aplicación │  Aplicación │
 ├─────────────┼─────────────┼─────────────┤    ├─────────────┼─────────────┼─────────────┤
-│  Libs/Bin   │  Libs/Bin   │  Libs/Bin   │    │  Libs/Bin   │  Libs/Bin   │  Libs/Bin   │
+│ Dep / Libs  │ Dep / Libs  │ Dep / Libs  │    │ Dep / Libs  │ Dep / Libs  │ Dep / Libs  │
 ├─────────────┼─────────────┼─────────────┤    ├─────────────┴─────────────┴─────────────┤
 │  Guest OS   │  Guest OS   │  Guest OS   │    │             DOCKER ENGINE               │
 ├─────────────┴─────────────┴─────────────┤    ├─────────────────────────────────────────┤
-│               HYPERVISOR                │    │           SISTEMA OPERATIVO HOST        │
+│            HYPERVISOR                   │    │         KERNEL DEL SO HOST              │
 ├─────────────────────────────────────────┤    ├─────────────────────────────────────────┤
-│            HARDWARE FÍSICO              │    │            HARDWARE FÍSICO              │
+│         HARDWARE FÍSICO                 │    │         HARDWARE FÍSICO                 │
 └─────────────────────────────────────────┘    └─────────────────────────────────────────┘
 ```
 
-### Mecanismos internos del Kernel Linux que posibilitan Docker
+### Cuadro comparativo técnico
 
-1. **Linux Namespaces (Aislamiento)**: Aíslan lo que el proceso dentro del contenedor puede *ver*:
-   - `pid`: Aísla el árbol de procesos (el proceso principal del contenedor se ve a sí mismo como PID 1).
-   - `net`: Aísla las interfaces de red y puertos.
-   - `mnt`: Aísla los puntos de montaje del sistema de archivos.
-   - `ipc`, `uts`, `user`: Aísla memoria compartida, hostname y usuarios.
-2. **Control Groups - cgroups (Limitación)**: Limitan y miden los recursos que el contenedor puede *consumir* (máximo de memoria RAM, cuota de CPU, I/O de disco).
+| Dimensión | Máquinas virtuales (Hypervisor) | Contenedores (Docker) |
+| :--- | :--- | :--- |
+| **Aislamiento** | Nivel de hardware (Hypervisor emula componentes). | Nivel de proceso (Namespaces y cgroups del Kernel). |
+| **Sistema operativo** | Cada VM ejecuta su propio *Guest OS* completo. | Comparten el mismo Kernel del SO Host. |
+| **Consumo de memoria**| Alto (Gigabytes por cada Guest OS). | Mínimo (Megabytes, solo el footprint del proceso). |
+| **Tiempo de arranque** | Minutos (Bootstrapping del sistema operativo completo).| Milisegundos (Inicio directo del proceso empaquetado).|
+| **Portabilidad** | Depende del formato del Hypervisor (OVA, VMDK). | Ultra portátil (Cualquier host con Docker Engine). |
 
----
-
-## 2. Componentes de la arquitectura Docker
-
-- **Docker Client (`docker`)**: Herramienta CLI de terminal con la que interactúa el desarrollador.
-- **Docker Daemon (`dockerd`)**: Servicio persistente en segundo plano que gestiona las imágenes, contenedores, redes y volúmenes a través de una API REST.
-- **Docker Registry (ej. Docker Hub)**: Repositorio centralizado público o privado para almacenar y distribuir imágenes de Docker.
-
----
-
-## 3. Imágenes vs contenedores
-
-- **Imagen Docker**: Plantilla de solo lectura (*Read-Only*) compuesta por múltiples capas superpuestas mediante un sistema de archivos de unión (*Union File System* / Overlay2). Contiene el código, dependencias, librerías y configuración base.
-- **Contenedor Docker**: Instancia ejecutable en tiempo de real de una imagen. Agrega una capa delgada de lectura y escritura (*Read-Write Container Layer*) en la parte superior.
+### Mecanismos del Kernel Linux detrás de Docker
+1. **Linux Namespaces (Aislamiento de visión)**:
+   - `PID Namespace`: Aísla el árbol de procesos (el proceso del contenedor se ve como PID 1).
+   - `NET Namespace`: Aísla las interfaces de red, tablas de ruteo y puertos.
+   - `MNT Namespace`: Aísla los puntos de montaje del sistema de archivos.
+   - `IPC`, `UTS`, `USER`: Aíslan memoria compartida, hostname y IDs de usuario.
+2. **Control Groups - cgroups (Limitación de recursos)**:
+   - Limitan y monitorean la cuota máxima de memoria RAM, uso de CPU, I/O de disco y sockets de red que puede consumir un contenedor.
 
 ---
 
-## 4. Guía detallada de `Dockerfile`
+## 2. Arquitectura de Docker Engine
 
-Un `Dockerfile` es un script de texto que contiene las instrucciones secuenciales para construir una imagen Docker.
+- **Docker Client (`docker`)**: Herramienta de comandos CLI que emite instrucciones a la API REST de Docker.
+- **Docker Daemon (`dockerd`)**: Proceso persistente en segundo plano en el Host que construye, ejecuta y gestiona imágenes, contenedores, volúmenes y redes.
+- **Docker Registry (ej. Docker Hub)**: Repositorio remoto centralizado para almacenar y compartir imágenes de contenedores públicas o privadas.
+
+---
+
+## 3. Imágenes vs. contenedores y sistema de capas
+
+- **Imagen Docker**: Plantilla de solo lectura (*Read-Only*) formada por una pila ordenada de capas inmutables de archivos (*Union File System* / Overlay2).
+- **Contenedor Docker**: Instancia ejecutable en tiempo real de una imagen. Agrega una delgada **Capa de lectura y escritura (Read-Write Container Layer)** en la parte superior.
+
+### Optimización de la caché de capas
+Cada instrucción en un `Dockerfile` genera una nueva capa. Reordenar las instrucciones de lo **menos frecuente** a lo **más frecuente** acelera drásticamente el tiempo de compilación (*build*):
+
+```dockerfile
+# ❌ INEFICIENTE: Copia todo el código antes de instalar dependencias (Invalida la caché)
+COPY . .
+RUN npm install
+
+# ✅ EFICIENTE: Instala dependencias reutilizando la caché si package.json no cambió
+COPY package*.json ./
+RUN npm ci
+COPY . .
+```
+
+---
+
+## 4. Guía completa de `Dockerfile` y construcción multi-stage
 
 ### Instrucciones principales
+- **`FROM`**: Especifica la imagen base (ej. `node:20-alpine`, `python:3.11-slim`).
+- **`WORKDIR`**: Define el directorio de trabajo interno.
+- **`COPY` / `ADD`**: Copia archivos desde el Host hacia el sistema de archivos del contenedor.
+- **`RUN`**: Ejecuta comandos en fase de construcción de la imagen.
+- **`ENV`**: Define variables de entorno permanentes.
+- **`EXPOSE`**: Documenta el puerto en el que escucha el contenedor.
+- **`USER`**: Cambia el usuario de ejecución evitando ejecutar como `root` por seguridad.
+- **`CMD` vs `ENTRYPOINT`**:
+  - `CMD ["node", "app.js"]`: Comando y parámetros por defecto (Sobrescribible fácilmente al ejecutar `docker run`).
+  - `ENTRYPOINT ["node"]`: Define el binario ejecutable fijo.
 
-| Instrucción | Propósito | Ejemplo |
-| :--- | :--- | :--- |
-| **`FROM`** | Define la imagen base sobre la cual construir. | `FROM node:20-alpine` |
-| **`WORKDIR`** | Establce el directorio de trabajo dentro del contenedor. | `WORKDIR /app` |
-| **`COPY`** | Copia archivos/carpetas desde el Host hacia el contenedor. | `COPY package*.json ./` |
-| **`RUN`** | Ejecuta comandos durante la fase de *build* de la imagen. | `RUN npm ci --only=production` |
-| **`ENV`** | Define variables de entorno dentro de la imagen. | `ENV NODE_ENV=production` |
-| **`EXPOSE`** | Documenta el puerto en el que escuchará el contenedor. | `EXPOSE 3000` |
-| **`USER`** | Define el usuario no-root que ejecutará la aplicación (Seguridad).| `USER node` |
-| **`CMD`** | Comando por defecto al iniciar el contenedor (Sobrescribible). | `CMD ["node", "src/server.js"]` |
-| **`ENTRYPOINT`** | Comando fijo ejecutable principal del contenedor. | `ENTRYPOINT ["python3"]` |
+### Multi-stage builds (Imágenes de producción livianas)
+Permite utilizar imágenes completas con compiladores para construir la aplicación y luego copiar **únicamente los artefactos resultantes** a una imagen base de producción ultra liviana:
 
-> ⚠️ **Diferencia entre `CMD` y `ENTRYPOINT`**: `CMD` provee argumentos por defecto que se pueden reemplazar fácilmente al ejecutar `docker run imagen comando_nuevo`. `ENTRYPOINT` convierte al contenedor en un ejecutable binario estricto.
+```dockerfile
+# ── ETAPA 1: Compilación (Build Stage) ──
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build  # Genera la carpeta /dist
 
-### Comandos de gestión de imágenes y contenedores
+# ── ETAPA 2: Producción (Production Stage) ──
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
 
-```bash
-# Compilar una imagen a partir del Dockerfile actual asignándole un tag
-docker build -t mi-api:v1.0 .
+# Copiar solo las dependencias de producción y los binarios compilados
+COPY package*.json ./
+RUN npm ci --only=production
+COPY --from=builder /app/dist ./dist
 
-# Listar todas las imágenes locales en el equipo
-docker images
-
-# Ejecutar un contenedor en segundo plano (-d), mapeando puerto 8080 host -> 3000 contenedor
-docker run -d -p 8080:3000 --name api_service mi-api:v1.0
-
-# Listar los contenedores actualmente en ejecución
-docker ps
-
-# Listar TODOS los contenedores (incluyendo detenidos)
-docker ps -a
-
-# Ver los logs transmitidos por un contenedor
-docker logs -f api_service
-
-# Ejecutar una terminal interactiva dentro de un contenedor en ejecución
-docker exec -it api_service sh
-
-# Acceso interactivo a psql en un contenedor de PostgreSQL
-docker exec -it postgres_db psql -U postgres -d camejo_db
-
-# Detener y eliminar un contenedor
-docker stop api_service
-docker rm api_service
+USER node
+EXPOSE 3000
+CMD ["node", "dist/main.js"]
 ```
 
 ---
 
-## 5. Persistencia de datos y montajes
+## 5. Persistencia de datos: volumes vs. bind mounts
 
-Los datos creados dentro de la capa *Read-Write* de un contenedor son **efímeros**: si el contenedor se borra, los datos se pierden. Para lograr persistencia existen 3 mecanismos:
+Los datos dentro de la capa R/W de un contenedor son **efímeros**. Si el contenedor se elimina, los datos desaparecen. Para persistir datos se utilizan dos estrategias:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      SISTEMA DEL HOST                       │
-├──────────────────────────────┬──────────────────────────────┤
-│ 1. Docker Managed Volumes    │ 2. Bind Mounts               │
-│    (/var/lib/docker/volumes) │    (/home/usuario/proyecto)  │
-│    - Gestionado por Docker.  │    - Mapeo directo a carpeta │
-│    - Ideal para Producción y │      del Host.               │
-│      Bases de datos.         │    - Ideal para Desarrollo.  │
-└──────────────────────────────┴──────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                   SISTEMA DE ARCHIVOS HOST                   │
+├──────────────────────────────┬───────────────────────────────┤
+│ 1. Named Volumes (Docker)    │ 2. Bind Mounts (Directorio)   │
+│    /var/lib/docker/volumes/  │    /home/usuario/proyecto/src │
+│    - Gestionados por Docker. │    - Mapeo directo a carpetas │
+│    - Rendimiento superior.   │      locales del Host.        │
+│    - Recomendado Producción. │    - Recomendado Desarrollo.  │
+└──────────────────────────────┴───────────────────────────────┘
 ```
 
 ```bash
-# Crear un volumen gestionado por Docker
-docker volume create postgres_data
+# Crear un volumen administrado por Docker
+docker volume create db_data
 
-# Ejecutar base de datos usando el volumen creado
-docker run -d -p 5432:5432 -v postgres_data:/var/lib/postgresql/data postgres:16
+# Montar volumen en contenedor PostgreSQL
+docker run -d -v db_data:/var/lib/postgresql/data -p 5432:5432 postgres:16
 ```
 
 ---
 
-## 6. Orquestación con Docker Compose e inicialización de bases de datos
+## 6. Redes en Docker
 
-**Docker Compose** es una herramienta para definir y coordinar aplicaciones multicontenedor (ej. Backend + Base de datos + Redis) mediante un archivo declarativo `docker-compose.yml`.
+Docker administra el tráfico entre contenedores y el Host a través de varios controladores de red (*Drivers*):
 
-### Inicialización automática de bases de datos (`/docker-entrypoint-initdb.d/`)
+- **Bridge (Por defecto)**: Crea una red privada virtual interna dentro del Host. Los contenedores pueden comunicarse por IP o por nombre de servicio si pertenecen a una red personalizada.
+- **Host**: Elimina el aislamiento de red; el contenedor comparte directamente la pila de red e interfaces del Host.
+- **None**: Desconecta completamente al contenedor de cualquier interfaz de red (Máximo aislamiento).
 
-Las imágenes oficiales de PostgreSQL en Docker ejecutan automáticamente cualquier script SQL montado en la carpeta `/docker-entrypoint-initdb.d/` **únicamente la primera vez que el volumen de datos está vacío**.
+```bash
+# Crear una red bridge personalizada
+docker network create red_aplicacion
+
+# Conectar contenedores a la misma red para permitir resolución DNS interna por nombre
+docker run -d --name mi_bd --network red_aplicacion postgres:16
+docker run -d --name mi_api --network red_aplicacion -p 3000:3000 mi-api
+```
+
+---
+
+## 7. Orquestación local con Docker Compose
+
+**Docker Compose** permite declarar y coordinar múltiples contenedores interconectados mediante un archivo YAML denominado `docker-compose.yml`.
+
+### Ejemplo completo multi-servicio (Backend + BD PostgreSQL)
 
 ```yaml
 version: '3.8'
 
 services:
+  backend_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DB_HOST=postgres_db
+      - DB_USER=camejo_user
+      - DB_PASS=secretpass
+      - DB_NAME=camejo_db
+    depends_on:
+      - postgres_db
+    networks:
+      - app_network
+
   postgres_db:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: camejo_user
       POSTGRES_PASSWORD: secretpass
       POSTGRES_DB: camejo_db
-    volumes:
-      - db_data:/var/lib/postgresql/data
-      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql  # Mapeo del script DDL
     ports:
-      - "5433:5432"  # Se usa el puerto 5433 en el host para evitar conflictos con PostgreSQL local
+      - "5433:5432"  # Mapea el puerto 5433 del host al 5432 del contenedor
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # Ejecuta DDL inicial la primera vez
+    networks:
+      - app_network
 
 volumes:
-  db_data:
+  pg_data:
+
+networks:
+  app_network:
+    driver: bridge
 ```
 
-### Reglas de comportamiento y reinicio limpio
-
-1. **Conflicto de puertos (`5433:5432`)**: Si tenés un motor PostgreSQL instalado localmente en tu PC escuchando en el puerto 5432, mapeá el puerto del host a `5433` (`"5433:5432"`) para evitar fallos de autenticación o colisiones.
-2. **Reinicio completo desde cero**: Si modificás el archivo `schema.sql` y querés que se vuelva a ejecutar automáticamente, debés eliminar los volúmenes existentes:
-
+### Comandos de operación con Docker Compose
 ```bash
-# Detener contenedores y eliminar volúmenes para forzar la re-inicialización del DDL
-docker compose down -v
+# Iniciar todos los servicios en segundo plano compilando imágenes si es necesario
 docker compose up -d --build
+
+# Ver logs unificados de todos los servicios en tiempo real
+docker compose logs -f
+
+# Detener todos los servicios preservando volúmenes
+docker compose down
+
+# Detener servicios y ELIMINAR volúmenes para forzar un reinicio desde cero
+docker compose down -v
 ```

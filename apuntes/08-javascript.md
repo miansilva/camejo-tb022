@@ -1,418 +1,228 @@
-# Módulo 08: JavaScript - Fundamentos, asincronía y desarrollo web
+# Módulo 08: Programación web con JavaScript (ES6+), DOM y asincronía
 
-Guía de estudio completa para dominar **JavaScript (JS / ECMAScript)**, el lenguaje de programación fundamental para el desarrollo web (Front-end en navegador y Back-end con Node.js), abarcando sintaxis, estructuras de datos, programación funcional, orientado a objetos, asincronía y manipulación del DOM.
-
----
-
-## 1. Arquitectura del motor de JavaScript (V8) y ejecución
-
-JavaScript es un lenguaje interpretado y compilado en tiempo de ejecución (*Just-In-Time Compilation - JIT*).
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    MOTOR JAVASCRIPT (V8)                    │
-├──────────────────────────────┬──────────────────────────────┤
-│        MEMORY HEAP           │          CALL STACK          │
-│   (Memoria no estructurada   │    (Pila de ejecución LIFO   │
-│    donde se almacenan        │    donde se gestionan los    │
-│    objetos y funciones)      │    marcos de contexto)       │
-└──────────────────────────────┴──────────────────────────────┘
-```
-
-### 1. Memory Heap (Memoria principal)
-Espacio de memoria no estructurado donde el motor asigna espacio para objetos, arreglos y funciones.
-
-### 2. Call Stack (Pila de ejecución)
-Estructura de datos LIFO (*Last In, First Out*) que rastrea la llamada a funciones. Cuando se invoca una función, se agrega un marco de pila (*Stack Frame*); al retornar, se destruye.
-
-### 3. Recolección de basura (Garbage collection)
-El motor aplica el algoritmo **Mark-and-Sweep**:
-1. Parte de las raíces globales (`window` o `global`).
-2. Recorre las referencias a objetos en memoria marcando los que son alcanzables.
-3. Libera la memoria de los objetos no alcanzables (*unreachable*).
+Guía de estudio conceptual y técnica completa sobre **JavaScript (ES6+)**, arquitectura interna del motor V8, el **Event loop**, asincronía (`Promises` y `async/await`), manipulación del DOM y consumo de APIs mediante `fetch()`.
 
 ---
 
-## 2. Alcance (Scope), entorno léxico y clausuras (Closures)
+## 1. Arquitectura interna del motor de JavaScript (V8) y ejecución
 
-### Tipos de alcance (Scope)
+JavaScript es un lenguaje de programación dinámico, débilmente tipado y multiparadigma. Se ejecuta mediante un motor de análisis y compilación en tiempo de ejecución (*Just-In-Time Compilation - JIT*), como el V8 de Google.
 
-- **Alcance global (*Global Scope*)**: Variables declaradas fuera de cualquier función o bloque. Accesibles desde todo el programa.
-- **Alcance de función (*Function Scope*)**: Variables declaradas con `var` dentro de una función.
-- **Alcance de bloque (*Block Scope*)**: Variables declaradas con `let` y `const` dentro de llaves `{ ... }`.
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         MOTOR JAVASCRIPT (V8)                               │
+├──────────────────────────────────────┬──────────────────────────────────────┤
+│            MEMORY HEAP               │              CALL STACK              │
+│   (Memoria no estructurada donde     │     (Pila de ejecución LIFO donde    │
+│    se asignan objetos y variables)   │      se apilan las funciones)        │
+└──────────────────────────────────────┴──────────────────────────────────────┘
+```
 
-### Elevación (Hoisting)
-Mecanismo por el cual el motor mueve las declaraciones de variables y funciones al inicio de su alcance durante la fase de compilación.
-- `var`: Se eleva e inicializa como `undefined`.
-- `let` y `const`: Se elevan pero permanecen en la **Zona muerta temporal (*Temporal Dead Zone - TDZ*)** hasta que se ejecuta su línea de inicialización.
+### Componentes de memoria
+1. **Memory Heap (Heap de memoria)**: Región de memoria no estructurada donde el motor reserva espacio para objetos, arrays, cierres (*closures*) y funciones.
+2. **Call Stack (Pila de llamadas)**: Estructura LIFO (*Last In, First Out*) que rastrea el contexto de ejecución. Cada llamada a una función agrega un marco de pila (*Stack Frame*), el cual se destruye al retornar.
+3. **Recolección de basura (Garbage Collector)**: Implementa el algoritmo **Mark-and-Sweep**. Parte de la raíz global (`window` o `global`), marca todos los objetos alcanzables y libera de la memoria los objetos huérfanos que carecen de referencias.
 
-### Clausuras (Closures)
-Una **clausura** es la combinación de una función y el entorno léxico en el cual fue declarada. Permite a una función interna acceder a las variables de su función padre incluso después de que la función padre haya finalizado su ejecución.
+---
+
+## 2. Alcance (scope), hoisting y clausuras (closures)
+
+### Tipos de alcance (*scope*)
+- **Global Scope**: Variables declaradas fuera de cualquier bloque o función. Accesibles desde cualquier punto del programa.
+- **Function Scope**: Variables declaradas con la palabra clave `var`. Se restringen al cuerpo de la función contenedora.
+- **Block Scope**: Variables declaradas con `let` y `const`. Tienen alcance estricto limitado al bloque envuelto por llaves `{ ... }`.
+
+### Elevación (*hoisting*)
+Proceso por el cual el motor mueve mentalmente las declaraciones al inicio de su alcance en la fase de compilación:
+- `var`: Se eleva e inicializa implícitamente como `undefined`.
+- `let` y `const`: Se elevan pero permanecen inaccesibles dentro de la **Zona muerta temporal (Temporal Dead Zone - TDZ)** hasta que se alcanza su declaración explícita.
+
+### Clausuras (*closures*)
+Un **Closure** es la combinación de una función y el entorno léxico (*Lexical Environment*) en el que fue creada. Permite que una función interna conserve acceso a las variables scope de su función contenedora padre, incluso después de que la función padre haya retornado.
 
 ```javascript
-// Ejemplo de encapsulamiento de datos mediante Closure
+// Patrón de encapsulamiento de estado privado mediante un Closure
 function crearContador() {
-    let contador = 0; // Variable privada encerrada en el closure
+    let contador = 0; // Variable privada no accesible desde fuera
     
     return {
-        incrementar: function() {
-            contador++;
-            return contador;
-        },
-        obtenerValor: function() {
-            return contador;
-        }
+        incrementar: () => ++contador,
+        obtenerValor: () => contador
     };
 }
 
 const miContador = crearContador();
-console.log(miContador.incrementar()); // 1
-console.log(miContador.incrementar()); // 2
-console.log(miContador.obtenerValor()); // 2
-// miContador.contador -> undefined (Protegido contra modificación externa)
+console.log(miContador.incrementar()); // Salida: 1
+console.log(miContador.incrementar()); // Salida: 2
+console.log(miContador.obtenerValor()); // Salida: 2
+// miContador.contador -> undefined (Protegido contra mutaciones no autorizadas)
 ```
 
 ---
 
-## 3. Variables, tipos de datos y operadores
+## 3. Variables, tipos de datos y coerción de tipos
 
-### Variables: `var` vs `let` vs `const`
+### `var` vs. `let` vs. `const`
 
-| Criterio | `var` | `let` | `const` |
+| Característica | `var` | `let` | `const` |
 | :--- | :---: | :---: | :---: |
 | **Alcance** | Función | Bloque | Bloque |
-| **Reasignación** | Sí | Sí | **No** |
-| **Redeclaración** | Sí | No | No |
+| **Reasignación** | Permitida | Permitida | **Inadmisible** (Constante) |
+| **Redeclaración** | Permitida | Inadmisible | Inadmisible |
 | **Hoisting** | `undefined` | TDZ (Error) | TDZ (Error) |
 
-### Tipos de datos en JavaScript
-
-#### Primitivos (Inmutables, comparación por valor)
-- **`string`**: Cadenas de texto.
-- **`number`**: Números de punto flotante de 64 bits (IEEE 754).
-- **`boolean`**: `true` o `false`.
-- **`null`**: Ausencia explícita de valor.
-- **`undefined`**: Variable declarada sin valor asignado.
-- **`symbol`**: Identificador único global.
-- **`bigint`**: Enteros de precisión arbitraria (`100n`).
-
-#### De referencia (Mutables, comparación por dirección de memoria)
-- **`Object`**, **`Array`**, **`Function`**, **`Date`**, **`Map`**, **`Set`**.
-
-### Comparación estricta vs conversión implícita
+### Tipos primitivos vs. referencia
+- **Primitivos (Inmutables)**: `string`, `number`, `boolean`, `null`, `undefined`, `symbol`, `bigint`. Se comparan y copian por **valor**.
+- **Referencia (Mutables)**: `Object`, `Array`, `Function`, `Map`, `Set`. Se comparan y copian por **dirección de memoria**.
 
 ```javascript
-// Conversión implícita de tipos (Coerción débil) - EVITAR
-5 == "5";     // true
-0 == false;   // true
-null == undefined; // true
-
-// Comparación estricta (Mismo tipo y mismo valor) - USAR SIEMPRE
-5 === "5";    // false
-5 === 5;      // true
+// Comparación estricta (===) vs Coerción débil (==)
+5 == "5";     // true (Coerción implícita de tipos - EVITAR)
+5 === "5";    // false (Comparación estricta de tipo y valor - RECOMENDADO)
 ```
 
 ---
 
-## 4. Funciones y sintaxis moderna (ES6+)
+## 4. Sintaxis moderna en ES6+ y métodos de arrays
 
-### 1. Declaración de funciones
+### Arrow Functions y operadores Spread/Rest
 ```javascript
-function calcularArea(ancho, alto) {
-    return ancho * alto;
-}
-```
+// Arrow function con retorno implícito de una sola línea
+const multiplicar = (a, b) => a * b;
 
-### 2. Funciones flecha (*Arrow Functions*)
-Sintaxis concisa que no posee su propio binding de `this`, `arguments` ni `super`.
+// Rest Parameters (...args): Agrupa argumentos variables en un array
+const sumarTodo = (...numeros) => numeros.reduce((acc, n) => acc + n, 0);
 
-```javascript
-// Sintaxis completa
-const calcularArea = (ancho, alto) => {
-    return ancho * alto;
-};
-
-// Retorno implícito de una sola línea
-const alCuadrado = x => x * x;
-```
-
-### 3. Parámetros por defecto, Rest y Spread operator
-
-```javascript
-// Parámetros por defecto
-const conectarDB = (puerto = 5432, host = "localhost") => {
-    console.log(`Conectando a ${host}:${puerto}`);
-};
-
-// Rest Parameters (...args): Convierte argumentos sueltos en un array
-const sumarArgumentos = (...numeros) => {
-    return numeros.reduce((acum, n) => acum + n, 0);
-};
-
-// Spread Operator (...arr): Desestructura un iterable en elementos individuales
+// Spread Operator (...arr): Desestructura un array u objeto
 const base = [1, 2];
-const combinado = [...base, 3, 4]; // [1, 2, 3, 4]
+const extendido = [...base, 3, 4]; // [1, 2, 3, 4]
 ```
 
----
-
-## 5. Estructuras de datos: Objetos, Arrays y Colecciones
-
-### Desestructuración de objetos y arrays
-```javascript
-const estudiante = {
-    nombre: "Silva",
-    curso: "75.18",
-    calificaciones: [9, 10, 8]
-};
-
-// Desestructuración de objeto y alias
-const { nombre, curso: materia } = estudiante;
-
-// Desestructuración de array
-const [primeraNota, segundaNota] = estudiante.calificaciones;
-```
-
-### Métodos iterativos de Arrays
+### Métodos iterativos esenciales de arrays
 ```javascript
 const productos = [
-    { id: 1, nombre: "Laptop", precio: 1200, activo: true },
+    { id: 1, nombre: "Teclado", precio: 50, activo: true },
     { id: 2, nombre: "Mouse", precio: 25, activo: false },
-    { id: 3, nombre: "Teclado", precio: 80, activo: true }
+    { id: 3, nombre: "Monitor", precio: 200, activo: true }
 ];
 
-// map: Transforma cada elemento creando un nuevo array
+# 1. map: Transforma cada elemento retornando un nuevo array de igual tamaño
 const nombres = productos.map(p => p.nombre);
 
-// filter: Filtra los elementos que cumplen la condición
+# 2. filter: Retorna un nuevo array con los elementos que satisfacen la condición
 const activos = productos.filter(p => p.activo);
 
-// find: Retorna el primer elemento coincidente
-const laptop = productos.find(p => p.id === 1);
+# 3. find: Devuelve el primer elemento que cumple la condición
+const item = productos.find(p => p.id === 2);
 
-// reduce: Acumula el resultado de procesar el array
-const totalPrecio = productos.reduce((total, p) => total + p.precio, 0);
-
-// some / every: Verificaciones booleanas
-const hayCaros = productos.some(p => p.precio > 1000); // true
-const todosActivos = productos.every(p => p.activo);    // false
-```
-
-### Colecciones de ES6 (`Map` y `Set`)
-- **`Set`**: Colección de valores únicos sin duplicados.
-- **`Map`**: Colección de pares clave-valor donde la clave puede ser de cualquier tipo (objetos, funciones, etc.).
-
-```bash
-// Eliminar duplicados de un array con Set
-const duplicados = [1, 2, 2, 3, 4, 4, 5];
-const unicos = [...new Set(duplicados)]; // [1, 2, 3, 4, 5]
+# 4. reduce: Acumula los elementos en un único valor final
+const totalPrecios = productos.reduce((acc, p) => acc + p.precio, 0);
 ```
 
 ---
 
-## 6. Prototipos y clases (Programación orientada a objetos)
+## 5. Arquitectura asíncrona y el Event loop
 
-JavaScript utiliza **herencia basada en prototipos**. Cada objeto tiene una propiedad interna que enlaza a otro objeto denominado su prototipo (`__proto__`).
+JavaScript es un lenguaje **mono-hilo (Single-Threaded)** con un modelo de I/O no bloqueante. Delegará operaciones lentas (peticiones de red, lectura de archivos, temporizadores) al entorno de ejecución (*Web APIs* en navegador o *Node.js Libuv*).
 
-### Clases en ES6 (Azúcar sintáctico sobre prototipos)
-
-```javascript
-class Persona {
-    constructor(nombre, edad) {
-        this.nombre = nombre;
-        this.edad = edad;
-    }
-
-    presentarse() {
-        return `Hola, soy ${this.nombre} y tengo ${this.edad} años.`;
-    }
-}
-
-// Herencia de clases
-class Estudiante extends Persona {
-    constructor(nombre, edad, padron) {
-        super(nombre, edad); // Invocación al constructor de la clase padre
-        this.padron = padron;
-    }
-
-    estudiar() {
-        return `${this.nombre} está estudiando para el examen de la materia.`;
-    }
-}
-
-const estudiante1 = new Estudiante("Silva", 22, "102345");
-console.log(estudiante1.presentarse());
-console.log(estudiante1.estudiar());
 ```
+┌────────────────────────┐      ┌────────────────────────┐
+│       CALL STACK       │      │   Web APIs / Node Libuv│
+│  (Ejecución síncrona)  │      │ (fetch, setTimeout, FS)│
+└───────────┬────────────┘      └───────────┬────────────┘
+            │                               │ Al finalizar
+            ▼                               ▼
+┌────────────────────────┐      ┌────────────────────────┐
+│    MICROTASK QUEUE     │      │ MACROTASK / CALLBACK Q.│
+│ (Callbacks de Promesas)│      │  (setTimeout, I/O)     │
+└───────────┬────────────┘      └───────────┬────────────┘
+            │                               │
+            └──────────► EVENT LOOP ◄───────┘
+               (Pasa tareas al Call Stack vacío)
+```
+
+1. **Call Stack**: Ejecuta todo el código síncrono.
+2. **Web APIs / Node APIs**: Procesan en segundo plano operaciones asíncronas.
+3. **Microtask Queue**: Cola prioritaria donde se encolan las llamadas de Promesas (`.then()`, `async/await`).
+4. **Macrotask Queue**: Cola para temporizadores (`setTimeout`) e I/O.
+5. **Event Loop**: Revisa constantemente el Call Stack. Cuando está **completamente vacío**, vacía primero la **Microtask Queue** y luego toma elementos de la **Macrotask Queue**.
 
 ---
 
-## 7. Asincronía y el Event loop
-
- JavaScript es mono-hilo. La asincronía se gestiona mediante el **Event loop**, delegando operaciones pesadas a las APIs del navegador o del sistema operativo.
-
-### Modelo de ejecución asíncrona
-
-```
-1. Call Stack ejecuta el código síncrono.
-2. Las tareas asíncronas (fetch, setTimeout) se envían a Web APIs.
-3. Al finalizar, las callbacks de Promesas van a la Microtask Queue.
-4. Las callbacks de timers van a la Macrotask / Callback Queue.
-5. El Event Loop pasa primero las Microtasks y luego las Macrotasks al Call Stack cuando está vacío.
-```
+## 6. Manejo de asincronía: `Promises` y `async/await`
 
 ### Promesas (`Promise`)
-
-Objeto que representa un valor que estará disponible ahora, en el futuro o nunca.
+Objeto que representa el resultado futuro de una operación asíncrona (Estados: *Pending*, *Fulfilled*, *Rejected*).
 
 ```javascript
-const consultarAPI = () => {
+const obtenerDatos = () => {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             const exito = true;
-            if (exito) {
-                resolve({ status: 200, payload: "Datos recibidos" });
-            } else {
-                reject(new Error("Error de servidor"));
-            }
+            if (exito) resolve({ data: "Payload recibido" });
+            else reject(new Error("Fallo de comunicación"));
         }, 1000);
     });
 };
 
-consultarAPI()
-    .then(res => console.log(res.payload))
-    .catch(err => console.error(err.message))
-    .finally(() => console.log("Finalizado"));
+obtenerDatos()
+    .then(respuesta => console.log(respuesta.data))
+    .catch(error => console.error(error.message))
+    .finally(() => console.log("Operación terminada"));
 ```
 
-### Múltiples promesas simultáneas
-- **`Promise.all([p1, p2])`**: Espera a que todas se resuelvan. Si una falla, rechaza inmediatamente.
-- **`Promise.allSettled([p1, p2])`**: Espera a que todas finalicen (resueltas o rechazadas).
-- **`Promise.race([p1, p2])`**: Retorna el resultado de la primera promesa en finalizar.
-
-### Async / Await
-
-Sintaxis síncrona sobre promesas para mejorar la legibilidad.
+### `async` / `await` y manejo de errores defensivo
+Sintaxis síncrona para trabajar con Promesas de forma limpia mediante `try/catch`:
 
 ```javascript
-async function obtenerDatosProcesados() {
+async function procesarSolicitud() {
     try {
-        const respuesta = await consultarAPI();
-        console.log("Respuesta recibida:", respuesta);
+        const respuesta = await obtenerDatos();
+        console.log("Éxito:", respuesta.data);
     } catch (error) {
-        console.error("Manejo de excepción:", error.message);
+        console.error("Excepción capturada:", error.message);
     }
 }
 ```
 
 ---
 
-## 8. Módulos en JavaScript: CommonJS vs ES Modules
+## 7. Manipulación del DOM y peticiones asíncronas (`fetch`)
 
-### 1. CommonJS (`require` / `module.exports`)
-Estándar tradicional de Node.js (carga síncrona).
-
+### Selección de elementos y eventos en el navegador
 ```javascript
-// exportar.js
-module.exports = { sumar, restar };
+// Selección de nodo en el árbol DOM
+const botonEnviar = document.querySelector('#btnEnviar');
+const inputEmail = document.querySelector('.input-email');
 
-// importar.js
-const { sumar, restar } = require('./exportar');
-```
-
-### 2. ES Modules (`import` / `export`)
-Estándar oficial de JavaScript moderno (ES6, soporta carga asíncrona nativa).
-
-```javascript
-// math.js
-export const sumar = (a, b) => a + b;
-export default class Calculadora {}
-
-// app.js
-import Calculadora, { sumar } from './math.js';
-```
-
----
-
-## 9. Control de errores y excepciones
-
-El manejo adecuado de errores evita que la aplicación se caiga de forma inesperada.
-
-```javascript
-class ValidacionError extends Error {
-    constructor(mensaje) {
-        super(mensaje);
-        this.name = "ValidacionError";
-    }
-}
-
-function procesarUsuario(usuario) {
-    if (!usuario.nombre) {
-        throw new ValidacionError("El nombre de usuario es obligatorio.");
-    }
-    return true;
-}
-
-try {
-    procesarUsuario({});
-} catch (error) {
-    if (error instanceof ValidacionError) {
-        console.warn("Error de validación:", error.message);
-    } else {
-        console.error("Error inesperado:", error);
-    }
-} finally {
-    console.log("Limpieza de recursos finalizada.");
-}
-```
-
----
-
-## 10. Manipulación del DOM y Fetch API (Entorno navegador)
-
-### Selección y modificación de elementos
-```javascript
-// Selección de elementos
-const elementoTitulo = document.querySelector('#tituloPrincipal');
-const listaItems = document.querySelectorAll('.item-lista');
-
-// Modificación de propiedades y clases CSS
-elementoTitulo.textContent = "Apuntes de desarrollo de software";
-elementoTitulo.classList.add('activo');
-```
-
-### Manejo de eventos
-```javascript
-const formulario = document.querySelector('#formLogin');
-
-formulario.addEventListener('submit', async (event) => {
-    event.preventDefault(); // Evita la recarga de página por defecto
-    
-    const email = document.querySelector('#emailInput').value;
-    console.log("Enviando formulario para:", email);
+// Delegación de evento click
+botonEnviar.addEventListener('click', async (event) => {
+    event.preventDefault(); // Previene la recarga del formulario
+    const email = inputEmail.value;
+    await enviarAlServidor(email);
 });
 ```
 
-### Peticiones HTTP con Fetch API
+### Consumo de APIs REST mediante `fetch()`
 ```javascript
-async function cargarDatosRemotos() {
+async function enviarAlServidor(email) {
     try {
-        const respuesta = await fetch('https://api.example.com/v1/datos', {
-            method: 'GET',
+        const respuesta = await fetch('https://api.ejemplo.com/v1/usuarios', {
+            method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer TOKEN_AQUI'
-            }
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email })
         });
 
         if (!respuesta.ok) {
-            throw new Error(`Error HTTP Status: ${respuesta.status}`);
+            throw new Error(`Error en la petición: ${respuesta.status}`);
         }
 
         const datos = await respuesta.json();
-        console.log("Datos obtenidos:", datos);
+        console.log("Usuario registrado con éxito:", datos);
     } catch (error) {
-        console.error("Fallo la comunicación de red:", error);
+        console.error("Error de red:", error.message);
     }
 }
 ```

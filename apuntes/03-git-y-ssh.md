@@ -1,200 +1,253 @@
-# Módulo 03: Control de versiones (Git) y autenticación SSH
+# Módulo 03: Control de versiones con Git y autenticación por SSH
 
-Guía de estudio completa para comprender el funcionamiento interno de **Git**, los comandos del flujo de trabajo y la seguridad mediante **Llaves SSH**.
-
----
-
-## 1. Fundamentos de Git y sistemas de control de versiones
-
-Un **Sistema de control de versiones (VCS - Version Control System)** es una herramienta que registra los cambios realizados en un conjunto de archivos a lo largo del tiempo, permitiendo recuperar versiones específicas, comparar cambios y colaborar en equipo.
-
-### Sistemas centralizados vs distribuidos
-
-```
-Centralizado (SVN, CVS):
-  [Dev A] ──┐
-  [Dev B] ──┼──> [ Servidor Central (Único repositorio) ]
-  [Dev C] ──┘   (Si se cae el servidor o no hay internet, no hay historial)
-
-Distribuido (Git):
-  [Dev A (Repo Completo)] ◄──┐
-  [Dev B (Repo Completo)] ◄──┼──► [ Servidor Remoto (GitHub / GitLab) ]
-  [Dev C (Repo Completo)] ◄──┘
-```
-
-- **Sistemas centralizados (SVN, CVS)**: Un único servidor central contiene todo el historial de versiones. Si el servidor falla o no hay conexión a internet, no se puede hacer commit ni consultar el historial.
-- **Sistemas distribuidos (Git, Mercurial)**: Cada desarrollador posee una copia completa y local de todo el repositorio con su historial íntegro. Se puede hacer commits, crear ramas y consultar el historial totalmente fuera de línea (*offline*).
+Guía de estudio conceptual y técnica completa sobre **Git**, su arquitectura interna de almacenamiento de objetos, estrategias de ramificación, rebase interactivo y autenticación criptográfica con **llaves SSH**.
 
 ---
 
-## 2. El modelo interno de Git
+## 1. Fundamentos de Git y sistemas de control de versiones (VCS)
 
-### Los tres estados y las tres zonas de Git
+Un **Version Control System (VCS)** es una herramienta fundamental en la ingeniería de software para gestionar y registrar los cambios realizados sobre el código fuente a lo largo del tiempo.
+
+### Centralizado (SVN) vs. distribuido (Git)
+
+```
+SISTEMA CENTRALIZADO (ej. Subversion / SVN)
+  [Desarrollador A] ──┐
+  [Desarrollador B] ──┼──> [ Servidor Centralizado ]
+  [Desarrollador C] ──┘    (Fallo único de punto central / Dependencia de conexión)
+
+SISTEMA DISTRIBUIDO (ej. Git)
+  [Dev A: Repo Completo] ◄──┐
+  [Dev B: Repo Completo] ◄──┼──► [ Servidor Remoto (GitHub) ]
+  [Dev C: Repo Completo] ◄──┘    (Cada nodo posee el historial completo / Operaciones locales)
+```
+
+- **VCS Centralizado**: Existe un único servidor que guarda el historial de revisiones. Si el servidor falla o se pierde la conexión a la red, los desarrolladores no pueden consultar el historial ni hacer commits.
+- **VCS Distribuido (DVCS)**: Cada clonación genera una réplica exacta y autónoma de la base de datos del proyecto con todo su historial. Todas las operaciones de commit, ramificación y consulta de logs son **locales y ultra rápidas**.
+
+---
+
+## 2. El modelo interno y la arquitectura de Git
+
+### Los tres estados y las tres zonas de trabajo
+
+Git gestiona los archivos distribuyéndolos en tres áreas conceptuales:
 
 ```
 ┌─────────────────────────┐      ┌─────────────────────────┐      ┌─────────────────────────┐
-│    Working Directory    │      │  Staging Area (Index)   │      │    Local Repository     │
-│ (Archivos modificados)  ├─────>│  (Cambios preparados)   ├─────>│  (Commits guardados)    │
+│    Working Directory    │      │   Staging Area (Index)  │      │    Local Repository     │
+│  (Directorio de trabajo)├─────>│  (Área de preparación)  ├─────>│   (Base de datos .git)  │
 └─────────────────────────┘      └─────────────────────────┘      └─────────────────────────┘
-         Archivos en                      `git add`                      `git commit`
-      edición local.
+      Archivos en                   `git add <file>`                    `git commit`
+     modificación.
 ```
 
-1. **Working Directory (Directorio de trabajo)**: Archivos reales en tu sistema operativo donde estás editando o escribiendo código.
-2. **Staging Area / Index (Área de preparación)**: Zona intermedia donde seleccionás qué modificaciones específicas formarán parte de tu próximo commit.
-3. **Local Repository (.git)**: La base de datos orientada a objetos dentro de la carpeta oculta `.git` donde Git almacena de forma permanente las capturas (*snapshots*) de tu proyecto.
+1. **Working Directory (Directorio de trabajo)**: Archivos del proyecto en el sistema de archivos del sistema operativo.
+2. **Staging Area / Index (Área de preparación)**: Zona intermedia donde se agrupan de forma granular los cambios exactos que se incluirán en la próxima captura (*snapshot*).
+3. **Local Repository (.git)**: Directorio oculto que actúa como la base de datos orientada a objetos donde Git guarda permanentemente las versiones como commits.
 
 ### La estructura de objetos en Git
+A diferencia de otros VCS que guardan diferencias de texto (*diffs*), Git almacena el proyecto mediante **capturas completas de estado (snapshots)** usando un grafo acíclico dirigido (DAG) de 4 tipos de objetos identificados por su hash criptográfico SHA-1/SHA-256:
 
-Git no almacena diferencias línea por línea (difs), sino capturas completas del sistema de archivos mediante 4 tipos de objetos identificados por un hash SHA-1 / SHA-256:
+```
+                  ┌─────────────────┐
+                  │  COMMIT OBJECT  │ (Autor, Fecha, Mensaje, Padre)
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │   TREE OBJECT   │ (Representa un directorio)
+                  └────┬───────┬────┘
+                       │       │
+            ┌──────────┘       └──────────┐
+            ▼                             ▼
+   ┌─────────────────┐           ┌─────────────────┐
+   │   TREE OBJECT   │           │   BLOB OBJECT   │ (Contenido puro de archivo)
+   └────────┬────────┘           └─────────────────┘
+            │
+            ▼
+   ┌─────────────────┐
+   │   BLOB OBJECT   │
+   └─────────────────┘
+```
 
-- **Blob**: Almacena únicamente el contenido de un archivo (sin su nombre ni permisos).
-- **Tree**: Representa un directorio. Asocia nombres de archivo y permisos con sus correspondientes hashes de Blobs o Trees.
-- **Commit**: Objeto que apunta a un Tree raíz y contiene metadatos: autor, fecha, mensaje y hash del commit padre (permitiendo construir el grafo del historial).
-- **Tag**: Etiqueta que apunta a un commit específico (ej. `v1.0.0`).
+- **Blob (Binary Large Object)**: Almacena exclusivamente el contenido de un archivo de texto o binario (sin metadatos como el nombre o los permisos).
+- **Tree**: Representa una carpeta o directorio. Contiene punteros a Blobs (archivos) u otros Trees (subcarpetas) asociándolos con sus nombres y permisos POSIX.
+- **Commit**: Contiene la referencia al Tree raíz del proyecto en ese instante, el autor, el committer, la marca de tiempo, el mensaje explicativo y el hash del commit anterior (padre).
+- **Annotated Tag**: Puntero permanente etiquetado que referencia a un commit específico (ej. `v1.0.0`).
 
 ---
 
-## 3. Guía completa de comandos Git
+## 3. Comandos esenciales del flujo de trabajo
 
-### Configuración inicial de identidad
+### Configuración global de identidad
 ```bash
-# Configurar nombre y correo global para firmar los commits
+# Configurar firma de commits
 git config --global user.name "Tu Nombre"
 git config --global user.email "tu.email@ejemplo.com"
 
-# Definir 'main' como la rama por defecto al inicializar repositorios
+# Definir la rama principal por defecto
 git config --global init.defaultBranch main
 ```
 
-### Flujo de trabajo básico
+### Operaciones básicas e inspección
 ```bash
-# Inicializar un nuevo repositorio local en la carpeta actual
+# Inicializar un nuevo repositorio
 git init
 
-# Clonar un repositorio remoto existente
-git clone git@github.com:usuario/repositorio.git
+# Clonar un repositorio remoto
+git clone git@github.com:usuario/proyecto.git
 
-# Inspeccionar el estado de los archivos (tracked, untracked, modified, staged)
+# Inspeccionar el estado de los archivos
 git status
 
-# Agregar archivos al Staging Area
-git add archivo.py       # Agrega un archivo específico
-git add .                # Agrega todas las modificaciones del directorio actual
+# Inspeccionar las diferencias no preparadas
+git diff
 
-# Crear un commit en la historia local
-git commit -m "feat(auth): implementar validación de contraseña"
+# Inspeccionar las diferencias preparadas en el Staging Area
+git diff --staged
 
-# Consultar el historial de commits
+# Inspeccionar un commit específico
+git show HASH_COMMIT
+
+# Preparar cambios para el próximo commit
+git add archivo.py
+git add .
+
+# Registrar un commit con mensaje semántico
+git commit -m "feat(auth): agregar middleware de autenticación JWT"
+
+# Consultar el historial en formato gráfico condensado
 git log --oneline --graph --all
 ```
 
-### Ramificación y fusión (Branching & Merging)
+### Deshacer cambios y restauración (Reset vs Restore vs Revert)
 
-Las **ramas** en Git son simplemente punteros móviles y ligeros que apuntan a un commit determinado.
+- **`git restore archivo.py`**: Descarta las modificaciones locales en el Working Directory restaurando el archivo al estado del último commit.
+- **`git restore --staged archivo.py`**: Remueve el archivo del Staging Area conservando sus cambios en el disco.
+- **`git reset`**: Desplaza el puntero de la rama actual a un commit anterior:
+  - `--soft`: Mantiene todos los cambios en el Staging Area.
+  - `--mixed` (Por defecto): Mantiene los cambios en el Working Directory pero fuera del Staging Area.
+  - `--hard`: **Destructivo**. Elimina todos los cambios del Staging y del Working Directory.
+- **`git revert HASH_COMMIT`**: Forma segura en ramas compartidas. Crea un nuevo commit inverso que anula los cambios del commit indicado sin alterar la historia previa.
+
+### El almacén temporal (`git stash`)
+Permite guardar temporalmente los cambios sin terminar en el Working Directory sin necesidad de hacer un commit prematuro:
 
 ```bash
-# Crear una nueva rama
-git branch feature/login
+# Guardar cambios actuales en el stash
+git stash push -m "WIP: trabajo en progreso de validación"
 
-# Cambiar a una rama existente
-git switch feature/login
-# (O sintaxis tradicional: git checkout feature/login)
+# Listar los stashes guardados
+git stash list
 
-# Crear y cambiar a una nueva rama en un solo paso
-git switch -c feature/login
+# Recuperar y aplicar el último stash borrándolo de la lista
+git stash pop
 
-# Listar todas las ramas locales
-git branch -a
-
-# Fusionar la rama 'feature/login' dentro de la rama actual
-git merge feature/login
-
-# Eliminar una rama local integrada
-git branch -d feature/login
-```
-
-#### Diferencia entre `git merge` y `git rebase`
-
-```
-Con Merge: (Conserva la historia real con un commit de fusión)
-  A ─── B ─── C ─── M (Merge Commit)
-         └── D ─── E (Feature)
-
-Con Rebase: (Reescribe la historia de forma lineal)
-  A ─── B ─── D' ─── E' ─── C
-```
-
-- **`git merge`**: Une dos ramas creando un commit especial de fusión (*Merge Commit*). Mantiene intacta la historia cronológica real.
-- **`git rebase`**: Mueve la base de tu rama actual al extremo de la rama destino, volviendo a aplicar tus commits uno a uno. Produce una historia perfectamente lineal. **Regla de oro**: NUNCA hacer rebase sobre ramas públicas o compartidas.
-
-### Operaciones con remotos
-```bash
-# Enlazar el repositorio local a un servidor remoto en GitHub
-git remote add origin git@github.com:usuario/repositorio.git
-
-# Enviar los commits locales al repositorio remoto
-git push -u origin main
-
-# Descargar las novedades del remoto SIN fusionar con tu código local
-git fetch origin
-
-# Descargar e integrar automáticamente los cambios remotos (equivalente a fetch + merge)
-git pull origin main
-```
-
-### Deshacer cambios (Undo)
-```bash
-# Descartar los cambios no guardados en un archivo (volver al último commit)
-git restore archivo.py
-
-# Quitar un archivo del Staging Area pero conservar sus modificaciones en el disco
-git restore --staged archivo.py
-
-# Volver a un commit anterior borrando todo el trabajo posterior (PELIGRO)
-git reset --hard HASH_COMMIT
-
-# Deshacer los cambios de un commit previo creando un nuevo commit inverso de seguridad
-git revert HASH_COMMIT
+# Aplicar un stash específico sin eliminarlo
+git stash apply stash@{0}
 ```
 
 ---
 
-## 4. Autenticación criptográfica por llaves SSH
+## 4. Estrategias de ramificación y fusión (branching)
 
-SSH (Secure Shell) permite autenticarse con servidores remotos como GitHub de forma segura sin necesidad de ingresar usuario y contraseña en cada petición.
+Una **rama (branch)** en Git es simplemente un puntero móvil de 41 bytes que referencia a un hash de commit específico.
 
-### Criptografía asimétrica
+### `git merge` vs `git rebase`
 
-Funciona mediante un par de claves matemáticas:
+#### Fusionar (`git merge`)
+Integra los cambios de una rama destino creando un nuevo **Merge Commit** de 3 vías.
 
 ```
-[ Tu Computadora ]                                   [ Servidor GitHub ]
-┌──────────────────────────┐                         ┌──────────────────────────┐
-│  Llave Privada (SECRET)  │                         │  Llave Pública (PÚBLICA) │
-│   ~/.ssh/id_ed25519      ├────── (Autenticación) ─►│   Agregada en Ajustes    │
-└──────────────────────────┘                         └──────────────────────────┘
+Historial real con Merge:
+  A ─── B ─── C ─── M (Merge Commit) [main]
+         └── D ─── E                 [feature]
 ```
+- **Ventaja**: Mantiene el historial cronológico exacto de lo que ocurrió.
+- **Desventaja**: Produce grafos ramificados y complejos en equipos grandes.
 
-- **Llave privada (`id_ed25519`)**: Se almacena localmente en tu equipo con permisos restringidos (`600`). **Jamás debe compartirse**.
-- **Llave pública (`id_ed25519.pub`)**: Se sube al servidor remoto (GitHub/GitLab). Cualquiera puede verla.
+#### Rebasar (`git rebase`)
+Desplaza la base de la rama actual al extremo de la rama principal destino, aplicando uno a uno los commits nuevamente.
 
-### Configuración paso a paso de llaves SSH
+```
+Historial lineal con Rebase:
+  A ─── B ─── C ─── D' ─── E' [main/feature]
+```
+- **Ventaja**: Mantiene una historia perfectamente limpia y lineal.
+- **Regla de oro del rebase**: **NUNCA hacer rebase sobre ramas públicas o compartidas** (`main`/`develop`), ya que reescribe el historial y romperá las copias de otros desarrolladores.
+
+### Rebase interactivo (`git rebase -i`)
+Permite reescribir, limpiar, consolidar o eliminar commits locales antes de enviarlos al servidor remoto:
 
 ```bash
-# 1. Generar un par de llaves usando el algoritmo moderno Ed25519
+# Iniciar rebase interactivo de los últimos 3 commits
+git rebase -i HEAD~3
+```
+
+Opciones disponibles en el editor interactivo:
+- **`pick`**: Conserva el commit tal como está.
+- **`reword`**: Conserva el commit pero permite modificar el mensaje.
+- **`squash`**: Combina el commit con el commit anterior, fusionando los mensajes.
+- **`fixup`**: Combina el commit con el anterior descartando el mensaje actual.
+- **`drop`**: Elimina completamente el commit.
+
+### Resolución teórica de conflictos de merge
+Ocurre cuando Git detecta modificaciones contradictorias sobre las mismas líneas de un archivo en ambas ramas:
+
+```html
+<<<<<<< HEAD (Tu rama actual)
+const API_URL = "https://api.produccion.com";
+=======
+const API_URL = "https://api.staging.com";
+>>>>>>> feature/config (Rama entrante)
+```
+1. Inspeccionar las marcas de conflicto (`<<<<<<<`, `=======`, `>>>>>>>`).
+2. Editar el archivo dejando la versión definitiva correcta.
+3. Ejecutar `git add archivo.py` y completar la fusión con `git commit`.
+
+---
+
+## 5. Estrategias de trabajo en equipo (workflows)
+
+| Modelo workflow | Características principales | Caso de uso recomendado |
+| :--- | :--- | :--- |
+| **Git Flow** | Ramas permanentes (`main`, `develop`) y ramas temporales (`feature/*`, `release/*`, `hotfix/*`). | Proyectos de software tradicionales con ciclos de release planificados y versionado semántico. |
+| **GitHub Flow** | Una rama principal `main` siempre estable. Creación de ramas `feature/*`, apertura de **Pull Requests (PR)** y despliegue directo a producción tras la aprobación. | Equipos con despliegue continuo (SaaS, Web Apps). |
+| **Trunk-Based** | Todos los desarrolladores envían pequeños cambios frecuentemente a la rama principal (`trunk`), usando *Feature Flags* para ocultar código incompleto. | Equipos de alta madurez con entrega continua (CI/CD ultra rápido). |
+
+---
+
+## 6. Autenticación criptográfica por llaves SSH
+
+SSH (Secure Shell) utiliza criptografía asimétrica de llave pública/privada para autenticar las operaciones remotas (`git push`, `git fetch`) de forma cifrada y sin contraseña.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   EQUIPO LOCAL DEL DESARROLLADOR            │
+│  Llave Privada (~/.ssh/id_ed25519) [Permisos 600 - SECRETA] │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Firma digital cifrada
+┌──────────────────────────────▼──────────────────────────────┐
+│                    SERVIDOR REMOTO (GitHub)                 │
+│  Llave Pública (~/.ssh/id_ed25519.pub) [PÚBLICA]            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Configuración paso a paso (Algoritmo Ed25519)
+```bash
+# 1. Generar el par de llaves asimétricas Ed25519
 ssh-keygen -t ed25519 -C "tu.email@ejemplo.com"
 
 # 2. Iniciar el agente SSH en segundo plano
 eval "$(ssh-agent -s)"
 
-# 3. Agregar la llave privada al agente SSH
+# 3. Registrar la llave privada en el agente local
 ssh-add ~/.ssh/id_ed25519
 
-# 4. Copiar el contenido de la llave pública para pegarla en GitHub
+# 4. Copiar la llave pública (.pub) para vincularla en la consola web de GitHub
 cat ~/.ssh/id_ed25519.pub
 
-# 5. Probar la conexión segura con GitHub
+# 5. Probar la autenticación
 ssh -T git@github.com
-# Salida esperada: Hi user! You've successfully authenticated...
 ```
