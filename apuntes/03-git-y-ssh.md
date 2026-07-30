@@ -121,15 +121,57 @@ git commit -m "feat(auth): agregar middleware de autenticación JWT"
 git log --oneline --graph --all
 ```
 
-### Deshacer cambios y restauración (Reset vs Restore vs Revert)
+### Deshacer cambios y restauración (Restore, Reset y Revert)
 
-- **`git restore archivo.py`**: Descarta las modificaciones locales en el Working Directory restaurando el archivo al estado del último commit.
-- **`git restore --staged archivo.py`**: Remueve el archivo del Staging Area conservando sus cambios en el disco.
-- **`git reset`**: Desplaza el puntero de la rama actual a un commit anterior:
-  - `--soft`: Mantiene todos los cambios en el Staging Area.
-  - `--mixed` (Por defecto): Mantiene los cambios en el Working Directory pero fuera del Staging Area.
-  - `--hard`: **Destructivo**. Elimina todos los cambios del Staging y del Working Directory.
-- **`git revert HASH_COMMIT`**: Forma segura en ramas compartidas. Crea un nuevo commit inverso que anula los cambios del commit indicado sin alterar la historia previa.
+#### 1. Restaurar archivos individuales (`git restore`)
+- **`git restore archivo.py`**: Descarta los cambios locales no guardados en el Working Directory, volviendo el archivo a la versión del último commit.
+- **`git restore --staged archivo.py`**: Quita un archivo del Staging Area (deshace `git add`), manteniendo las modificaciones en el disco.
+
+---
+
+#### 2. Mover el puntero de la rama (`git reset`)
+`git reset` desplaza el puntero `HEAD` y la rama activa hacia un commit anterior (por ejemplo, `HEAD~1` representa retroceder 1 commit). La diferencia clave entre sus 3 modos radica en **dónde quedan los cambios deshechos**:
+
+##### Efectos de `git reset HEAD~1` (Deshacer el último commit):
+
+| Modo | Staging Area (Index) | Working Directory (Disco) |
+| :--- | :--- | :--- |
+| **`--soft`** | ✅ Conserva los cambios | ✅ Conserva los cambios |
+| **`--mixed`** *(Por defecto)* | ❌ Quita los cambios del Staging | ✅ Conserva los cambios |
+| **`--hard`** *(Destructivo)* | ❌ Quita los cambios del Staging | ❌ Elimina los cambios del disco |
+
+
+##### Ejemplos prácticos de `git reset`:
+
+* **`git reset --soft HEAD~1` (Soft Reset)**
+  Deshace el último commit pero **deja todos sus archivos listos en el Staging Area**. Ideal si te equivocaste en el mensaje del commit o te olvidaste de incluir un archivo:
+  ```bash
+  # Deshacer el último commit conservando los cambios preparados (Staged)
+  git reset --soft HEAD~1
+
+  # Hacer la corrección y volver a comitear
+  git add archivo_olvidado.py
+  git commit -m "feat(auth): mensaje corregido con todos los archivos"
+  ```
+
+* **`git reset --mixed HEAD~1` (Mixed Reset - Por defecto)**
+  Deshace el último commit y saca los archivos del Staging Area, pero **mantiene las modificaciones locales en el disco** como cambios no preparados:
+  ```bash
+  # Deshacer el commit y sacar todo del Staging (los cambios quedan en el disco)
+  git reset HEAD~1  # o git reset --mixed HEAD~1
+  ```
+
+* **`git reset --hard HEAD~1` (Hard Reset - DESTRUCTIVO)**
+  **Elimina por completo el commit y borra permanentemente todos los cambios** tanto del Staging como del disco. El proyecto vuelve exactamente a cómo estaba en el commit anterior:
+  ```bash
+  # ⚠️ ¡CUIDADO! Elimina el último commit y destruye los cambios locales
+  git reset --hard HEAD~1
+  ```
+
+---
+
+#### 3. Revertir commits en ramas públicas (`git revert`)
+- **`git revert HASH_COMMIT`**: Es la alternativa **segura para repositorios remotos/compartidos**. En lugar de reescribir el historial (como hace `reset`), crea un **nuevo commit inverso** que deshace exactamente los cambios del commit indicado sin alterar el historial previo.
 
 ### El almacén temporal (`git stash`)
 Permite guardar temporalmente los cambios sin terminar en el Working Directory sin necesidad de hacer un commit prematuro:
