@@ -373,3 +373,132 @@ docker compose down
 # Detener servicios y ELIMINAR volúmenes para forzar un reinicio desde cero
 docker compose down -v
 ```
+
+---
+
+## 8. Cheatsheet y Referencia de Comandos CLI (Progresivo y Agrupado)
+
+Esta guía rápida organiza los comandos indispensables de Docker en un flujo lógico y progresivo, desde la gestión de imágenes hasta la limpieza del sistema.
+
+### 8.1. Gestión de Imágenes (`docker image / docker ...`)
+
+Las imágenes son las plantillas de solo lectura.
+
+| Comando | Descripción |
+| :--- | :--- |
+| `docker pull <imagen>:<tag>` | Descarga una imagen desde un registry (ej. Docker Hub). |
+| `docker images` *(o `docker image ls`)* | Lista todas las imágenes almacenadas localmente en el Host. |
+| `docker build -t <nombre>:<tag> .` | Construye una imagen a partir del `Dockerfile` en el directorio actual. |
+| `docker rmi <imagen>` *(o `docker image rm`)* | Elimina una imagen local (si no hay contenedores usándola). |
+| `docker image inspect <imagen>` | Muestra metadatos detallados en JSON (capas, variables, entrypoint). |
+
+### 8.2. Gestión de Contenedores (`docker container / docker ...`)
+
+Los contenedores son las instancias en ejecución de las imágenes.
+
+> **Diferencia clave:**  
+> - `docker create`: Prepara el contenedor y su capa de escritura pero **no lo inicia**.  
+> - `docker start`: Arranca un contenedor ya creado o detenido.  
+> - `docker run`: Ejecuta un `create` y un `start` en un único paso.
+
+```bash
+# 1. Crear e iniciar un contenedor en segundo plano (Detached) con puerto y nombre
+docker run -d --name mi-mongo -p 27017:27017 mongo
+
+# 2. Crear e iniciar un contenedor interactivo con consola abierta
+docker run -it --name mi-ubuntu ubuntu bash
+
+# 3. Listar contenedores activos (en ejecución)
+docker ps
+
+# 4. Listar TODOS los contenedores (activos, detenidos y con error)
+docker ps -a
+
+# 5. Detener un contenedor en ejecución (envía SIGTERM)
+docker stop mi-mongo
+
+# 6. Iniciar un contenedor detenido
+docker start mi-mongo
+
+# 7. Reiniciar un contenedor
+docker restart mi-mongo
+
+# 8. Ver logs de un contenedor
+docker logs mi-mongo
+
+# 9. Ver logs en tiempo real (Follow)
+docker logs -f mi-mongo
+
+# 10. ENTRAR a la consola de un contenedor en ejecución (Crucial para debugging)
+docker exec -it mi-mongo bash
+
+# 11. Eliminar un contenedor detenido
+docker rm mi-mongo
+
+# 12. Forzar la detención y eliminación de un contenedor activo
+docker rm -f mi-mongo
+```
+
+### 8.3. Gestión de Redes (`docker network`)
+
+Permiten la comunicación entre contenedores aislados.
+
+| Comando | Descripción |
+| :--- | :--- |
+| `docker network ls` | Lista las redes disponibles en el Engine (bridge, host, custom). |
+| `docker network create <nombre>` | Crea una red bridge personalizada con DNS automático. |
+| `docker network inspect <nombre>` | Muestra los contenedores conectados a esa red y sus IPs. |
+| `docker network connect <red> <contenedor>` | Conecta un contenedor en ejecución a una red existente. |
+| `docker network rm <nombre>` | Elimina una red personalizada. |
+
+### 8.4. Gestión de Volúmenes (`docker volume`)
+
+Garantizan la persistencia de datos fuera de la vida útil del contenedor.
+
+| Comando | Descripción |
+| :--- | :--- |
+| `docker volume ls` | Lista los volúmenes administrados por Docker. |
+| `docker volume create <nombre>` | Crea un nuevo volumen persistente. |
+| `docker volume inspect <nombre>` | Muestra la ruta física del volumen en el disco del Host. |
+| `docker volume rm <nombre>` | Elimina un volumen (debe estar desconectado). |
+
+### 8.5. Orquestación con Docker Compose (`docker compose`)
+
+Administración del ciclo de vida multi-contenedor desde `docker-compose.yml`.
+
+```bash
+# Levantar todos los servicios en segundo plano (reconstruyendo si hubo cambios)
+docker compose up -d --build
+
+# Ver el estado de los servicios definidos en el Compose
+docker compose ps
+
+# Ver logs unificados de todos los servicios en tiempo real
+docker compose logs -f <nombre_servicio>
+
+# Ejecutar un comando dentro de un servicio del Compose
+docker compose exec app sh
+
+# Apagar los servicios y remover la red compartida
+docker compose down
+
+# Apagar servicios y ELIMINAR volúmenes asignados (reinicio limpio completo)
+docker compose down -v
+```
+
+### 8.6. Monitoreo, Diagnóstico y Limpieza (`docker system`)
+
+```bash
+# Ver consumo de CPU, Memoria e I/O en tiempo real de los contenedores
+docker stats
+
+# Ver espacio en disco utilizado por objetos de Docker
+docker system df
+
+# LIMPIEZA TOTAL: Elimina contenedores detenidos, redes no usadas e imágenes huérfanas
+docker system prune -f
+
+# Limpieza profunda incluyendo imágenes no utilizadas
+docker system prune -a --volumes
+```
+
